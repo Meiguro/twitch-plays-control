@@ -13,6 +13,7 @@ var config = Control.config = {
   },
   enabled: true,
   showBorder: true,
+  showHand: true,
   autoSend: false
 };
 
@@ -156,6 +157,14 @@ Control.onChangeBorder = function(e) {
   Control.saveConfig();
 };
 
+Control.onChangeHand = function(e) {
+  var newValue = config.showHand = $(this).is(':checked');
+  $mouseBox.css({
+    cursor: config.showHand ? 'pointer' : 'default',
+  });
+  Control.saveConfig();
+};
+
 Control.onChangeAutoSend = function(e) {
   var newValue = config.autoSend = $(this).is(':checked');
   Control.saveConfig();
@@ -210,6 +219,8 @@ Control.init = function() {
       'tpc-enabled-checkbox', 'Enable touch control', Control.onChangeEnable, config.enabled))
     .append(State.borderCheckbox = makeCheckbox(
       'tpc-border-checkbox', 'Show border box', Control.onChangeBorder, config.showBorder))
+    .append(State.borderCheckbox = makeCheckbox(
+      'tpc-hand-checkbox', 'Use hand pointer', Control.onChangeHand, config.showHand))
     .append(State.borderCheckbox = makeCheckbox(
       'tpc-auto-send-checkbox', 'Auto-send touches', Control.onChangeAutoSend, config.autoSend));
 
