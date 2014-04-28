@@ -6,7 +6,7 @@ var config = Control.config = {
   delay: 250,
   screen: {
     aspect: 1920 / 1080,
-    position: [0.357, 0.542],
+    position: [0.534, 0.979],
     scale: 0.444,
     size: [256, 192],
     barHeight: 30
@@ -23,12 +23,12 @@ var $controlSettings = $('<div/>').addClass('tpc-control-settings');
 
 var State = Control.State = {};
 
-Control.updateMouseBox = function() {
+Control.updateMouseBox = function(force) {
   var playerWidth = $player.width();
   var playerHeight = $player.height() - config.screen.barHeight;
 
-  if (Control.lastPlayerWidth === playerWidth &&
-      Control.lastPlayerHeight === playerHeight) {
+  if ((Control.lastPlayerWidth === playerWidth &&
+       Control.lastPlayerHeight === playerHeight) && force !== true) {
     return;
   }
 
@@ -51,15 +51,15 @@ Control.updateMouseBox = function() {
 
   $mouseBox.css({
     position: 'absolute',
-    left: excessWidth / 2 + (playerWidth - excessWidth) * config.screen.position[0],
-    top: playerHeight * config.screen.position[1],
+    left: excessWidth / 2 + (playerWidth - width - excessWidth) * config.screen.position[0],
+    top: (playerHeight - height) * config.screen.position[1],
     width: width,
     height: height
   });
 };
 
-Control.updateControlSettings = function() {
-  if (!$chatSettings.is(':visible')) {
+Control.updateControlSettings = function(force) {
+  if (!$chatSettings.is(':visible') && force !== true) {
     return;
   }
 
@@ -98,8 +98,28 @@ var makeCheckbox = function(id, label, onChange, value) {
   return $elem;
 };
 
+var makeSlider = function(klass, label, options) {
+  var $slider = $('<div class="'+klass+'"></div>');
+  $slider.slider(options);
+  var $elem = $('<p><label>'+label+'</label></p>');
+  $elem.prepend($slider);
+  return $elem;
+};
+
 Control.saveConfig = function() {
   localStorage.TPControl = JSON.stringify(config);
+};
+
+Control.onChangeXPosition = function(e) {
+  var newValue = config.screen.position[0] = $(this).slider('value');
+  Control.updateMouseBox(true);
+  Control.saveConfig();
+};
+
+Control.onChangeYPosition = function(e) {
+  var newValue = config.screen.position[1] = $(this).slider('value');
+  Control.updateMouseBox(true);
+  Control.saveConfig();
 };
 
 Control.onChangeEnable = function(e) {
@@ -152,8 +172,17 @@ Control.init = function() {
   $controlSettings.append(
     '<div class="chat-menu">' +
       '<div class="chat-menu-header">Touch Control Settings</div>' +
+      '<div class="chat-menu-content tpc-control-sliders"></div>' +
       '<div class="chat-menu-content tpc-control-checkboxes"></div>' +
     '</div>');
+
+  $controlSettings.find('.tpc-control-sliders')
+    .append(State.xSlider = makeSlider(
+      'tpc-x-slider', 'Touch-box x-position', {
+        slide: Control.onChangeXPosition, value: config.screen.position[0], min: 0, max: 1, step: 0.001 }))
+    .append(State.ySlider = makeSlider(
+      'tpc-x-slider', 'Touch-box y-position', {
+        slide: Control.onChangeYPosition, value: config.screen.position[1], min: 0, max: 1, step: 0.001 }));
 
   $controlSettings.find('.tpc-control-checkboxes')
     .append(State.enabledCheckbox = makeCheckbox(
@@ -161,7 +190,7 @@ Control.init = function() {
     .append(State.borderCheckbox = makeCheckbox(
       'tpc-border-checkbox', 'Show border box', Control.onChangeBorder, config.showBorder))
     .append(State.borderCheckbox = makeCheckbox(
-      'tpc-auto-send-checkbox', 'Auto-send touch commands', Control.onChangeAutoSend, config.autoSend));
+      'tpc-auto-send-checkbox', 'Auto-send touches', Control.onChangeAutoSend, config.autoSend));
 
   $player.append($mouseBox);
   $chatSettings.append($controlSettings);
