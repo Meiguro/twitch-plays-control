@@ -24,6 +24,14 @@ Control.update = function() {
   var playerWidth = $player.width();
   var playerHeight = $player.height() - config.screen.barHeight;
 
+  if (Control.lastPlayerWidth === playerWidth &&
+      Control.lastPlayerHeight === playerHeight) {
+    return;
+  }
+  
+  Control.lastPlayerWidth = playerWidth;
+  Control.lastPlayerHeight = playerHeight;
+
   var aspect = playerWidth / playerHeight;
 
   var excessWidth = 0;
