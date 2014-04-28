@@ -10,14 +10,14 @@
 // @run-at         document-start
 // ==/UserScript==
 
-var Control = window.TPControl = {};
+var Control = unsafeWindow.TPControl = {};
 
 var config = Control.config = {
   delay: 100,
   screen: {
     aspect: 1920 / 1080,
-    position: [0.534, 0.979],
-    scale: 0.444,
+    position: [0.5355, 0.9785],
+    scale: 0.443,
     size: [256, 192],
     barHeight: 30
   },
