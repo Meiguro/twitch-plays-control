@@ -1,4 +1,14 @@
-(function() {
+// ==UserScript==
+// @id             twitch-plays-control@meiguro.com
+// @name           Twitch Plays Pokémon Touch Controller
+// @version        0.1
+// @author         Meiguro <meiguro@meiguro.com> http://meiguro.com/
+// @namespace      http://meiguro.com/userscripts/twitch-plays-control
+// @description    Add Touch controls to Twitch Plays Pokemon touch-enabled games.
+// @include        /^https?://(www\.)?twitch\.tv/twitchplayspokemon
+// @grant          GM_addStyle
+// @run-at         document-start
+// ==/UserScript==
 
 var Control = window.TPControl = {};
 
@@ -17,16 +27,13 @@ var config = Control.config = {
   autoSend: false
 };
 
-Control.configDefault = $.extend(true, {}, config);
-
-var $player = $('.dynamic-player');
-var $chatSettings = $('.js-chat-settings');
-var $mouseBox = $('<div/>').addClass('tpc-mouse-box');
-var $controlSettings = $('<div/>').addClass('tpc-control-settings');
-
 var State = Control.State = {};
 
 Control.updateMouseBox = function(force) {
+  var $player = State.$player;
+  var $mouseBox = State.$mouseBox;
+  var $chatSettings = State.$chatSettings;
+
   var playerWidth = $player.width();
   var playerHeight = $player.height() - config.screen.barHeight;
 
@@ -74,6 +81,9 @@ Control.updateMouseBox = function(force) {
 };
 
 Control.updateControlSettings = function(force) {
+  var $chatSettings = State.$chatSettings;
+  var $controlSettings = State.$controlSettings;
+
   if (!$chatSettings.is(':visible') && force !== true) {
     return;
   }
@@ -89,6 +99,9 @@ Control.updateControlSettings = function(force) {
 };
 
 Control.update = function() {
+  var $player = State.$player;
+  var $mouseBox = State.$mouseBox;
+
   if (!$.contains($player[0], $mouseBox[0])) {
     clearInterval(Control.interval);
   }
@@ -169,7 +182,7 @@ Control.onChangeEnabled = function(e) {
   } else {
     $(this).prop('checked', config.enabled);
   }
-  $mouseBox.css({
+  State.$mouseBox.css({
     display: config.enabled ? 'block' : 'none'
   });
   Control.saveConfig();
@@ -181,7 +194,7 @@ Control.onChangeBorder = function(e) {
   } else {
     $(this).prop('checked', config.showBorder);
   }
-  $mouseBox.css({
+  State.$mouseBox.css({
     border: config.showBorder ? '2px solid rgba(255, 255, 255, 0.5)' : 'none'
   });
   Control.saveConfig();
@@ -193,7 +206,7 @@ Control.onChangeHand = function(e) {
   } else {
     $(this).prop('checked', config.showHand);
   }
-  $mouseBox.css({
+  State.$mouseBox.css({
     cursor: config.showHand ? 'pointer' : 'default',
   });
   Control.saveConfig();
@@ -222,8 +235,9 @@ Control.onPressReset = function(e) {
 };
 
 Control.init = function(refresh) {
-  $('.tpc-mouse-box').remove();
-  $('.tpc-control-settings').remove();
+  window.$ = unsafeWindow.$;
+
+  Control.configDefault = $.extend(true, {}, config);
 
   if (!localStorage.TPControl) {
     localStorage.TPControl = Control.config;
@@ -238,6 +252,14 @@ Control.init = function(refresh) {
     }
   }
   Control.saveConfig();
+
+  $('.tpc-mouse-box').remove();
+  $('.tpc-control-settings').remove();
+
+  var $player = State.$player = $('.dynamic-player');
+  var $chatSettings = State.$chatSettings = $('.js-chat-settings');
+  var $mouseBox = State.$mouseBox = $('<div/>').addClass('tpc-mouse-box');
+  var $controlSettings = State.$controlSettings = $('<div/>').addClass('tpc-control-settings');
 
   $player.css({ position: 'relative' });
   $chatSettings.css({ position: 'absolute' });
@@ -289,7 +311,7 @@ Control.init = function(refresh) {
   Control.interval = setInterval(Control.update, config.delay);
 };
 
-Control.init();
-
-})();
-
+window.onload = function() {
+  Control.init();
+  console.log(GM_info.script.name + ' v' + GM_info.script.version + ' loaded!');
+};
