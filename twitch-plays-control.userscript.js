@@ -12,7 +12,8 @@ var config = Control.config = {
     barHeight: 30
   },
   enabled: true,
-  showBorder: true
+  showBorder: true,
+  autoSend: false
 };
 
 var $player = $('.dynamic-player');
@@ -85,6 +86,9 @@ Control.onClick = function(e) {
   var x = Math.round(e.offsetX / Control.scale);
   var y = Math.round(e.offsetY / Control.scale);
   $('.ember-text-area').val(x + ',' + y).focus().blur();
+  if (config.autoSend) {
+    $('.send-chat-button button').click();
+  }
 };
 
 var makeCheckbox = function(id, label, onChange, value) {
@@ -111,6 +115,11 @@ Control.onChangeBorder = function(e) {
   $mouseBox.css({
     border: newValue ? '2px solid rgba(255, 255, 255, 0.5)' : 'none'
   });
+  Control.saveConfig();
+};
+
+Control.onChangeAutoSend = function(e) {
+  var newValue = config.autoSend = $(this).is(':checked');
   Control.saveConfig();
 };
 
@@ -150,7 +159,9 @@ Control.init = function() {
     .append(State.enabledCheckbox = makeCheckbox(
       'tpc-enabled-checkbox', 'Enable touch control', Control.onChangeEnable, config.enabled))
     .append(State.borderCheckbox = makeCheckbox(
-      'tpc-border-checkbox', 'Show border box', Control.onChangeBorder, config.showBorder));
+      'tpc-border-checkbox', 'Show border box', Control.onChangeBorder, config.showBorder))
+    .append(State.borderCheckbox = makeCheckbox(
+      'tpc-auto-send-checkbox', 'Auto-send touch commands', Control.onChangeAutoSend, config.autoSend));
 
   $player.append($mouseBox);
   $chatSettings.append($controlSettings);
