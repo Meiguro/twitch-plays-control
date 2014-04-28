@@ -13,7 +13,7 @@
 var Control = window.TPControl = {};
 
 var config = Control.config = {
-  delay: 250,
+  delay: 100,
   screen: {
     aspect: 1920 / 1080,
     position: [0.534, 0.979],
@@ -99,25 +99,42 @@ Control.updateControlSettings = function(force) {
   });
 };
 
+Control.updateInput = function() {
+  if (!$('.ember-text-area').length || $('.chat-hidden-overlay').is(':visible')) {
+    return;
+  }
+
+  var input = localStorage.TPCInput;
+  delete localStorage.TPCInput;
+  if (typeof input === 'string' && input.length > 0) {
+    Control.setInput(input, false);
+  }
+};
+
 Control.update = function() {
   var $player = State.$player;
   var $mouseBox = State.$mouseBox;
 
-  if (!$.contains($player[0], $mouseBox[0])) {
-    clearInterval(Control.interval);
-  }
-
-  Control.updateMouseBox();
+  Control.updateInput();
   Control.updateControlSettings();
+  Control.updateMouseBox();
+};
+
+Control.setInput = function(input, broadcast) {
+  $('.ember-text-area').val(input).focus().trigger('change').change().blur();
+  if (config.autoSend) {
+    $('.send-chat-button button').click();
+  }
+  if (broadcast !== false) {
+    localStorage.TPCInput = input;
+  }
 };
 
 Control.onClick = function(e) {
   var x = Math.round(e.offsetX / Control.scale);
   var y = Math.round(e.offsetY / Control.scale);
-  $('.ember-text-area').val(x + ',' + y).focus().blur();
-  if (config.autoSend) {
-    $('.send-chat-button button').click();
-  }
+  var input = x + ',' + y;
+  Control.setInput(input);
 };
 
 var makeCheckbox = function(id, label, onChange, value) {
@@ -258,6 +275,15 @@ Control.init = function(refresh) {
   $('.tpc-control-settings').remove();
 
   var $player = State.$player = $('.dynamic-player');
+  if ($player.length) {
+    Control.isRegular = true;
+  } else {
+    $player = State.$player = $('.player-container');
+    if ($player.length) {
+      Control.isPopout = true;
+    }
+  }
+
   var $chatSettings = State.$chatSettings = $('.js-chat-settings');
   var $mouseBox = State.$mouseBox = $('<div/>').addClass('tpc-mouse-box');
   var $controlSettings = State.$controlSettings = $('<div/>').addClass('tpc-control-settings');
