@@ -1,6 +1,8 @@
 (function() {
 
-var config = window.TTOConfig = {
+var Control = window.TPControl = {};
+
+var config = Control.config = {
   delay: 250,
   screen: {
     aspect: 1920 / 1080,
@@ -10,8 +12,6 @@ var config = window.TTOConfig = {
     barHeight: 30
   }
 };
-
-var Control = window.TTOControl = {};
 
 var $player = $('.dynamic-player');
 var $mouseBox = $('<div/>').addClass('mouse-box');
