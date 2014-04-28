@@ -89,11 +89,12 @@ Control.updateControlSettings = function(force) {
   }
 
   var $child = $chatSettings.find(':first');
+  var minWidth = 200;
 
   $controlSettings.css({
     position: 'absolute',
-    minWidth: $child.width(),
-    right: $child.outerWidth() + 5,
+    minWidth: Math.max(minWidth, $child.width()),
+    right: Math.max(minWidth, $child.outerWidth()) + 5,
     bottom: 0
   });
 };
@@ -309,6 +310,8 @@ Control.init = function(refresh) {
   $mouseBox.on('click', Control.onClick);
 
   Control.interval = setInterval(Control.update, config.delay);
+
+  Control.updateControlSettings(true);
 };
 
 window.onload = function() {
