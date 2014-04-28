@@ -89,12 +89,16 @@ Control.updateControlSettings = function(force) {
   }
 
   var $child = $chatSettings.find(':first');
-  var minWidth = 200;
+  var minWidth = Math.max(200, $child.width());
+  var offset = minWidth + 5;
+  var chatSettingsLeft = $chatSettings.offset().left;
+  var isSlim = chatSettingsLeft > 0 && chatSettingsLeft < minWidth;
 
   $controlSettings.css({
     position: 'absolute',
     minWidth: Math.max(minWidth, $child.width()),
-    right: Math.max(minWidth, $child.outerWidth()) + 5,
+    left: isSlim ? offset : 'none',
+    right: isSlim ? 'none' : offset,
     bottom: 0
   });
 };
@@ -114,6 +118,8 @@ Control.updateInput = function() {
 Control.update = function() {
   var $player = State.$player;
   var $mouseBox = State.$mouseBox;
+
+  if (!config.enabled) { return; }
 
   Control.updateInput();
   Control.updateControlSettings();
