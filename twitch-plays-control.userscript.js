@@ -84,7 +84,7 @@ Control.update = function() {
 Control.onClick = function(e) {
   var x = Math.round(e.offsetX / Control.scale);
   var y = Math.round(e.offsetY / Control.scale);
-  $('.ember-text-area').val(x + ',' + y);
+  $('.ember-text-area').val(x + ',' + y).focus().blur();
 };
 
 var makeCheckbox = function(id, label, onChange, value) {
