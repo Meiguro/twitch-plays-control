@@ -56,6 +56,18 @@ Control.updateMouseBox = function(force) {
     width: width,
     height: height
   });
+
+  if (!$chatSettings.is(':visible')) {
+    $mouseBox.stop(true, true).css({ background: 'transparent' });
+    return;
+  }
+
+  $mouseBox
+    .stop(true, true)
+    .animate({ backgroundColor: 'rgba(255, 255, 255, 0.5)' }, 100)
+    .delay(1000)
+    .animate({ backgroundColor: 'rgba(255, 255, 255, 0)' })
+    .animate({ background: 'transparent' }, 0);
 };
 
 Control.updateControlSettings = function(force) {
@@ -122,6 +134,12 @@ Control.onChangeYPosition = function(e) {
   Control.saveConfig();
 };
 
+Control.onChangeScale = function(e) {
+  var newValue = config.screen.scale = $(this).slider('value');
+  Control.updateMouseBox(true);
+  Control.saveConfig();
+};
+
 Control.onChangeEnable = function(e) {
   var newValue = config.enabled = $(this).is(':checked');
   $mouseBox.css({
@@ -178,11 +196,14 @@ Control.init = function() {
 
   $controlSettings.find('.tpc-control-sliders')
     .append(State.xSlider = makeSlider(
-      'tpc-x-slider', 'Touch-box x-position', {
-        slide: Control.onChangeXPosition, value: config.screen.position[0], min: 0, max: 1, step: 0.001 }))
+      'tpc-x-slider tpc-slider', 'Touch-box x-position', {
+        slide: Control.onChangeXPosition, value: config.screen.position[0], min: 0, max: 1, step: 0.0005 }))
     .append(State.ySlider = makeSlider(
-      'tpc-x-slider', 'Touch-box y-position', {
-        slide: Control.onChangeYPosition, value: config.screen.position[1], min: 0, max: 1, step: 0.001 }));
+      'tpc-y-slider tpc-slider', 'Touch-box y-position', {
+        slide: Control.onChangeYPosition, value: config.screen.position[1], min: 0, max: 1, step: 0.0005 }))
+    .append(State.ySlider = makeSlider(
+      'tpc-scale-slider tpc-slider', 'Touch-box scale', {
+        slide: Control.onChangeScale, value: config.screen.scale, min: 0, max: 1, step: 0.0005 }));
 
   $controlSettings.find('.tpc-control-checkboxes')
     .append(State.enabledCheckbox = makeCheckbox(
