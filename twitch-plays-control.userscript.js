@@ -17,6 +17,8 @@ var config = Control.config = {
   autoSend: false
 };
 
+Control.configDefault = $.extend(true, {}, config);
+
 var $player = $('.dynamic-player');
 var $chatSettings = $('.js-chat-settings');
 var $mouseBox = $('<div/>').addClass('tpc-mouse-box');
@@ -108,6 +110,7 @@ var makeCheckbox = function(id, label, onChange, value) {
   var $elem = $('<p><label for="'+id+'"><input id="'+id+'" type="checkbox">'+label+'</label></p>');
   var $input = $elem.find('input').prop('checked', value).on('change', onChange);
   onChange.call($input, onChange);
+  $elem.$control = $input;
   return $elem;
 };
 
@@ -116,6 +119,13 @@ var makeSlider = function(klass, label, options) {
   $slider.slider(options);
   var $elem = $('<p><label>'+label+'</label></p>');
   $elem.prepend($slider);
+  $elem.$control = $slider;
+  return $elem;
+};
+
+var makeButton = function(klass, label, onPress) {
+  var $elem = $('<button class="'+klass+'">'+label+'</button>');
+  $elem.on('click', onPress);
   return $elem;
 };
 
@@ -124,41 +134,65 @@ Control.saveConfig = function() {
 };
 
 Control.onChangeXPosition = function(e) {
-  var newValue = config.screen.position[0] = $(this).slider('value');
+  if (e) {
+    config.screen.position[0] = $(this).slider('value');
+  } else {
+    $(this).slider('value', config.screen.position[0]);
+  }
   Control.updateMouseBox(true);
   Control.saveConfig();
 };
 
 Control.onChangeYPosition = function(e) {
-  var newValue = config.screen.position[1] = $(this).slider('value');
+  if (e) {
+    config.screen.position[1] = $(this).slider('value');
+  } else {
+    $(this).slider('value', config.screen.position[1]);
+  }
   Control.updateMouseBox(true);
   Control.saveConfig();
 };
 
 Control.onChangeScale = function(e) {
-  var newValue = config.screen.scale = $(this).slider('value');
+  if (e) {
+    config.screen.scale = $(this).slider('value');
+  } else {
+    $(this).slider('value', config.screen.scale);
+  }
   Control.updateMouseBox(true);
   Control.saveConfig();
 };
 
-Control.onChangeEnable = function(e) {
-  var newValue = config.enabled = $(this).is(':checked');
+Control.onChangeEnabled = function(e) {
+  if (e) {
+    config.enabled = $(this).is(':checked');
+  } else {
+    $(this).prop('checked', config.enabled);
+  }
   $mouseBox.css({
-    display: newValue ? 'block' : 'none'
+    display: config.enabled ? 'block' : 'none'
   });
   Control.saveConfig();
 };
 
 Control.onChangeBorder = function(e) {
-  var newValue = config.showBorder = $(this).is(':checked');
+  if (e) {
+    config.showBorder = $(this).is(':checked');
+  } else {
+    $(this).prop('checked', config.showBorder);
+  }
   $mouseBox.css({
-    border: newValue ? '2px solid rgba(255, 255, 255, 0.5)' : 'none'
+    border: config.showBorder ? '2px solid rgba(255, 255, 255, 0.5)' : 'none'
   });
   Control.saveConfig();
 };
 
 Control.onChangeHand = function(e) {
-  var newValue = config.showHand = $(this).is(':checked');
+  if (e) {
+    config.showHand = $(this).is(':checked');
+  } else {
+    $(this).prop('checked', config.showHand);
+  }
   $mouseBox.css({
     cursor: config.showHand ? 'pointer' : 'default',
   });
@@ -166,11 +200,28 @@ Control.onChangeHand = function(e) {
 };
 
 Control.onChangeAutoSend = function(e) {
-  var newValue = config.autoSend = $(this).is(':checked');
+  if (e) {
+    config.autoSend = $(this).is(':checked');
+  } else {
+    $(this).prop('checked', config.autoSend);
+  }
   Control.saveConfig();
 };
 
-Control.init = function() {
+Control.onPressReset = function(e) {
+  config = Control.config = $.extend(true, {}, Control.configDefault);
+  Control.onChangeXPosition.call(State.xSlider.$control);
+  Control.onChangeYPosition.call(State.ySlider.$control);
+  Control.onChangeScale.call(State.scaleSlider.$control);
+  Control.onChangeEnabled.call(State.enabledCheckbox.$control);
+  Control.onChangeBorder.call(State.borderCheckbox.$control);
+  Control.onChangeHand.call(State.handCheckbox.$control);
+  Control.onChangeAutoSend.call(State.autoSendCheckbox.$control);
+  Control.update(true);
+  Control.saveConfig();
+};
+
+Control.init = function(refresh) {
   $('.tpc-mouse-box').remove();
   $('.tpc-control-settings').remove();
 
@@ -196,11 +247,13 @@ Control.init = function() {
     border: '2px solid rgba(150, 150, 150, 0.2)'
   });
 
+  $controlSettings.empty();
   $controlSettings.append(
     '<div class="chat-menu">' +
       '<div class="chat-menu-header">Touch Control Settings</div>' +
       '<div class="chat-menu-content tpc-control-sliders"></div>' +
       '<div class="chat-menu-content tpc-control-checkboxes"></div>' +
+      '<div class="chat-menu-content tpc-control-last"></div>' +
     '</div>');
 
   $controlSettings.find('.tpc-control-sliders')
@@ -210,19 +263,23 @@ Control.init = function() {
     .append(State.ySlider = makeSlider(
       'tpc-y-slider tpc-slider', 'Touch-box y-position', {
         slide: Control.onChangeYPosition, value: config.screen.position[1], min: 0, max: 1, step: 0.0005 }))
-    .append(State.ySlider = makeSlider(
+    .append(State.scaleSlider = makeSlider(
       'tpc-scale-slider tpc-slider', 'Touch-box scale', {
         slide: Control.onChangeScale, value: config.screen.scale, min: 0, max: 1, step: 0.0005 }));
 
   $controlSettings.find('.tpc-control-checkboxes')
     .append(State.enabledCheckbox = makeCheckbox(
-      'tpc-enabled-checkbox', 'Enable touch control', Control.onChangeEnable, config.enabled))
+      'tpc-enabled-checkbox', 'Enable touch control', Control.onChangeEnabled, config.enabled))
     .append(State.borderCheckbox = makeCheckbox(
       'tpc-border-checkbox', 'Show border box', Control.onChangeBorder, config.showBorder))
-    .append(State.borderCheckbox = makeCheckbox(
+    .append(State.handCheckbox = makeCheckbox(
       'tpc-hand-checkbox', 'Use hand pointer', Control.onChangeHand, config.showHand))
-    .append(State.borderCheckbox = makeCheckbox(
+    .append(State.autoSendCheckbox = makeCheckbox(
       'tpc-auto-send-checkbox', 'Auto-send touches', Control.onChangeAutoSend, config.autoSend));
+
+  $controlSettings.find('.tpc-control-last')
+    .append(State.resetButton = makeButton(
+      'tpc-reset-button', 'Reset to default controls', Control.onPressReset));
 
   $player.append($mouseBox);
   $chatSettings.append($controlSettings);
