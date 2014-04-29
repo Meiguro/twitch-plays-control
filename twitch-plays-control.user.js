@@ -122,7 +122,13 @@ var config = Control.config = {
   streamDelay: 15
 };
 
-var State = Control.State = {};
+var State = Control.State = {
+  playerSelector: '.dynamic-player, .player-container',
+  chatSettingsSelector: '.js-chat-settings',
+  chatInputSelector: '.ember-text-area',
+  chatButtonSelector: '.send-chat-button button',
+  chatHiddenSelector: '.chat-hidden-overlay'
+};
 
 Control.getBorderSize = function() {
   return parseInt(State.$mouseBox.css('borderTop'));
@@ -201,7 +207,7 @@ Control.updateControlSettings = function(force) {
 };
 
 Control.isChatVisible = function() {
-  return $('.ember-text-area').length && !$('.chat-hidden-overlay').is(':visible');
+  return $(State.chatInputSelector).length && !$(State.chatHiddenSelector).is(':visible');
 };
 
 Control.updateInput = function() {
@@ -243,9 +249,10 @@ Control.update = function() {
 };
 
 Control.setInput = function(input, broadcast) {
-  $('.ember-text-area').val(input).focus().trigger('change').change().blur();
+  $(State.chatInputSelector).val(input)
+    .focus().change().blur();
   if (config.autoSend) {
-    $('.send-chat-button button').click();
+    $(State.chatButtonSelector).click();
   }
   if (!Control.isChatVisible() && broadcast !== false) {
     localStorage.TPCInput = input;
@@ -363,8 +370,8 @@ Control.init = function() {
   $('.tpc-mouse-box').remove();
   $('.tpc-control-settings').remove();
 
-  var $player = State.$player = $('.dynamic-player, .player-contianer');
-  var $chatSettings = State.$chatSettings = $('.js-chat-settings');
+  var $player = State.$player = $(State.playerSelector);
+  var $chatSettings = State.$chatSettings = $(State.chatSettingsSelector);
   var $mouseBox = State.$mouseBox = $('<div/>').addClass('tpc-mouse-box');
   var $coordTooltip = State.$coordTooltip = $('<div/>').addClass('tpc-coord-tooltip');
   var $controlSettings = State.$controlSettings = $('<div/>').addClass('tpc-control-settings');
@@ -459,8 +466,8 @@ Control.loadable = function() {
   var $ = unsafeWindow.jQuery;
   if (typeof $ !== 'function') { return false; }
 
-  var hasPlayer = $('.dynamic-player, .player-container').length;
-  var hasChatSettings = $('.chat-settings').length;
+  var hasPlayer = $(State.playerSelector).length;
+  var hasChatSettings = $(State.chatSettingsSelector).length;
   return hasPlayer || hasChatSettings;
 };
 
