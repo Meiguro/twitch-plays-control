@@ -4,8 +4,8 @@
 // @version        0.1.1
 // @author         Meiguro <meiguro@meiguro.com> http://meiguro.com/
 // @description    Add Touch controls to Twitch Plays Pokemon touch-enabled games.
-// @include        /^https?://(www\.)?twitch\.tv/twitchplayspokemon
-// @grant          GM_addStyle
+// @include        http*://*.twitch.tv/twitchplayspokemon*
+// @grant          unsafeWindow, GM_info
 // @run-at         document-start
 // @updateURL      https://rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
 // @installURL     https://rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
@@ -122,7 +122,24 @@ Control.updateInput = function() {
   }
 };
 
+Control.updateLoad = function() {
+  if (State.loaded) { return; }
+  if (!Control.loadable()) { return; }
+
+  try {
+    Control.onload();
+  } catch (e) {
+    console.log(e.message);
+    console.log(e.stack);
+  }
+};
+
 Control.update = function() {
+  if (!State.loaded) {
+    Control.updateLoad();
+    return;
+  }
+
   var $player = State.$player;
   var $mouseBox = State.$mouseBox;
 
@@ -144,8 +161,9 @@ Control.setInput = function(input, broadcast) {
 };
 
 Control.onClick = function(e) {
-  var x = Math.ceil(e.offsetX / Control.scale);
-  var y = Math.ceil(e.offsetY / Control.scale);
+  var offset = $(e.currentTarget).offset();
+  var x = Math.ceil((e.clientX - offset.left) / Control.scale);
+  var y = Math.ceil((e.clientY - offset.top) / Control.scale);
   var input = x + ',' + y;
   Control.setInput(input);
 };
@@ -265,8 +283,8 @@ Control.onPressReset = function(e) {
   Control.saveConfig();
 };
 
-Control.init = function(refresh) {
-  window.$ = unsafeWindow.$;
+Control.init = function() {
+  window.$ = unsafeWindow.jQuery;
 
   Control.configDefault = $.extend(true, {}, config);
 
@@ -348,12 +366,23 @@ Control.init = function(refresh) {
 
   $mouseBox.on('click', Control.onClick);
 
-  Control.interval = setInterval(Control.update, config.delay);
-
   Control.updateControlSettings(true);
+
+  State.loaded = true;
 };
 
-window.onload = function() {
+Control.loadable = function() {
+  var $ = unsafeWindow.jQuery;
+  if (typeof $ !== 'function') { return false; }
+
+  var hasPlayer = $('.dynamic-player').length || $('.player-container').length;
+  var hasChatSettings = $('.chat-settings').length;
+  return hasPlayer || hasChatSettings;
+};
+
+Control.onload = function() {
   Control.init();
   console.log(GM_info.script.name + ' v' + GM_info.script.version + ' loaded!');
 };
+
+Control.interval = setInterval(Control.update, config.delay);
