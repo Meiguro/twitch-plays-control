@@ -13,11 +13,94 @@
 // ==/UserScript==
 
 
+// GM_addStyle shim
+
 if (typeof GM_addStyle === 'undefined') {
   GM_addStyle = function(style) {
     $('head:first').append($('<style>').text(style));
   };
 }
+
+// Double binding micro library
+
+var dd = {};
+
+dd.last = function(a) {
+    return a[a.length - 1];
+}
+
+dd.toKey = function(obj, key) {
+    return typeof obj === 'array' ? parseInt(key) : key;
+}
+
+dd.getByKeys = function(obj, keys, offset) {
+    for (var i = 0, ii = keys.length - (offset || 0); i < ii; ++i) {
+        obj = obj[dd.toKey(obj, keys[i])];
+    }
+    return obj;
+}
+
+dd.setByKey = function(obj, key, value) {
+    obj[dd.toKey(obj, key)] = value;
+}
+
+dd.set = function(obj, ref, value) {
+    var keys = ref.split('.');
+    dd.setByKey(dd.getByKeys(obj, keys, 1), dd.last(keys), value);
+}
+
+dd.get = function(obj, ref) {
+    return dd.getByKeys(obj, ref.split('.'));
+}
+
+dd.bindGetSet = function($elem, get, set) {
+  $elem.$get = get;
+  $elem.$set = set || get;
+};
+
+dd.bindElement = function($elem, obj, ref, onChange) {
+  $elem.$obj = obj;
+  $elem.$ref = ref;
+  $elem.$change = function(e) {
+    if (e) {
+      dd.set(obj, ref, $elem.$get());
+    } else {
+      $elem.$set(dd.get(obj, ref));
+    }
+    if (onChange) { onChange(e); }
+    if (dd.onChange) { dd.onChange(e); }
+  };
+  $elem.$change();
+  return $elem.$change;
+};
+
+// dd UI elements
+
+var makeCheckbox = function(id, label, obj, ref, onChange) {
+  var $elem = $('<p><label for="'+id+'"><input id="'+id+'" type="checkbox">'+label+'</label></p>');
+  var $input = $elem.find('input');
+  dd.bindGetSet($elem, $input.prop.bind($input, 'checked'));
+  $input.on('change', dd.bindElement($elem, obj, ref, onChange));
+  return $elem;
+};
+
+var makeSlider = function(klass, label, options, obj, ref, onChange) {
+  var $elem = $('<p><label>'+label+'</label></p>');
+  var $slider = $('<div class="'+klass+'"></div>');
+  $slider.slider(options);
+  $elem.prepend($slider);
+  dd.bindGetSet($elem, $slider.slider.bind($slider, 'value'));
+  $slider.slider({ slide: dd.bindElement($elem, obj, ref, onChange) });
+  return $elem;
+};
+
+var makeButton = function(klass, label, onPress) {
+  var $elem = $('<button class="'+klass+'">'+label+'</button>');
+  $elem.on('click', onPress);
+  return $elem;
+};
+
+// Twitch Plays Control
 
 var Control = unsafeWindow.TPControl = {};
 
@@ -236,142 +319,18 @@ Control.onMove = function(e) {
     });
 };
 
-var makeCheckbox = function(id, label, onChange, value) {
-  var $elem = $('<p><label for="'+id+'"><input id="'+id+'" type="checkbox">'+label+'</label></p>');
-  var $input = $elem.find('input').prop('checked', value).on('change', onChange);
-  onChange.call($input, onChange);
-  $elem.$control = $input;
-  return $elem;
-};
-
-var makeSlider = function(klass, label, options) {
-  var $slider = $('<div class="'+klass+'"></div>');
-  $slider.slider(options);
-  var $elem = $('<p><label>'+label+'</label></p>');
-  $elem.prepend($slider);
-  $elem.$control = $slider;
-  return $elem;
-};
-
-var makeButton = function(klass, label, onPress) {
-  var $elem = $('<button class="'+klass+'">'+label+'</button>');
-  $elem.on('click', onPress);
-  return $elem;
-};
-
 Control.saveConfig = function() {
   localStorage.TPControl = JSON.stringify(config);
 };
 
-Control.onChangeXPosition = function(e) {
-  if (e) {
-    config.screen.position[0] = $(this).slider('value');
-  } else {
-    $(this).slider('value', config.screen.position[0]);
-  }
-  Control.updateMouseBox(true);
-  Control.saveConfig();
-};
-
-Control.onChangeYPosition = function(e) {
-  if (e) {
-    config.screen.position[1] = $(this).slider('value');
-  } else {
-    $(this).slider('value', config.screen.position[1]);
-  }
-  Control.updateMouseBox(true);
-  Control.saveConfig();
-};
-
-Control.onChangeScale = function(e) {
-  if (e) {
-    config.screen.scale = $(this).slider('value');
-  } else {
-    $(this).slider('value', config.screen.scale);
-  }
-  Control.updateMouseBox(true);
-  Control.saveConfig();
-};
-
-Control.onChangeEnabled = function(e) {
-  if (e) {
-    config.enabled = $(this).is(':checked');
-  } else {
-    $(this).prop('checked', config.enabled);
-  }
-  State.$mouseBox.css({
-    display: config.enabled ? 'block' : 'none'
-  });
-  Control.saveConfig();
-};
-
-Control.onChangeBorder = function(e) {
-  if (e) {
-    config.showBorder = $(this).is(':checked');
-  } else {
-    $(this).prop('checked', config.showBorder);
-  }
-  State.$mouseBox.css({
-    border: config.showBorder ? '2px solid rgba(255, 255, 255, 0.5)' : 'none'
-  });
-  Control.saveConfig();
-};
-
-Control.onChangeCoordTooltip = function(e) {
-  if (e) {
-    config.showCoordTooltip = $(this).is(':checked');
-  } else {
-    $(this).prop('checked', config.showCoordTooltip);
-  }
-  if (config.showCoordTooltip) {
-    State.$mouseBox.append(State.$coordTooltip);
-  } else {
-    State.$coordTooltip.remove();
-  }
-  Control.saveConfig();
-};
-
-Control.onChangeCross = function(e) {
-  if (e) {
-    config.showCross = $(this).is(':checked');
-  } else {
-    $(this).prop('checked', config.showCross);
-  }
-  State.$mouseBox.css({
-    cursor: config.showCross ? 'crosshair' : 'default',
-  });
-  Control.saveConfig();
-};
-
-Control.onChangeAutoSend = function(e) {
-  if (e) {
-    config.autoSend = $(this).is(':checked');
-  } else {
-    $(this).prop('checked', config.autoSend);
-  }
-  Control.saveConfig();
-};
-
-Control.onChangeDroplets = function(e) {
-  if (e) {
-    config.showDroplets = $(this).is(':checked');
-  } else {
-    $(this).prop('checked', config.showDroplets);
-  }
-  Control.saveConfig();
-};
-
 Control.onPressReset = function(e) {
   config = Control.config = $.extend(true, {}, Control.configDefault);
-  Control.onChangeXPosition.call(State.xSlider.$control);
-  Control.onChangeYPosition.call(State.ySlider.$control);
-  Control.onChangeScale.call(State.scaleSlider.$control);
-  Control.onChangeEnabled.call(State.enabledCheckbox.$control);
-  Control.onChangeBorder.call(State.borderCheckbox.$control);
-  Control.onChangeCoordTooltip.call(State.coordTooltipCheckbox.$control);
-  Control.onChangeCross.call(State.crossCheckbox.$control);
-  Control.onChangeAutoSend.call(State.autoSendCheckbox.$control);
-  Control.onChangeDroplets.call(State.dropletsCheckbox.$control);
+  for (var k in State) {
+    var $elem = State[k];
+    if ($elem.$change) {
+      $elem.$change();
+    }
+  }
   Control.update(true);
   Control.saveConfig();
 };
@@ -394,6 +353,8 @@ Control.init = function() {
     }
   }
   Control.saveConfig();
+
+  dd.onChange = Control.saveConfig;
 
   $('.tpc-mouse-box').remove();
   $('.tpc-control-settings').remove();
@@ -446,28 +407,43 @@ Control.init = function() {
 
   $controlSettings.find('.tpc-control-sliders')
     .append(State.xSlider = makeSlider(
-      'tpc-x-slider tpc-slider', 'Touch-box x-position', {
-        slide: Control.onChangeXPosition, value: config.screen.position[0], min: 0, max: 1, step: 0.0005 }))
+      'tpc-x-slider tpc-slider', 'Touch-box x-position', { min: 0, max: 1, step: 0.0005 },
+      config, 'screen.position.0', function() { Control.updateMouseBox(true); }))
     .append(State.ySlider = makeSlider(
-      'tpc-y-slider tpc-slider', 'Touch-box y-position', {
-        slide: Control.onChangeYPosition, value: config.screen.position[1], min: 0, max: 1, step: 0.0005 }))
+      'tpc-y-slider tpc-slider', 'Touch-box y-position', { min: 0, max: 1, step: 0.0005 },
+      config, 'screen.position.1', function() { Control.updateMouseBox(true); }))
     .append(State.scaleSlider = makeSlider(
-      'tpc-scale-slider tpc-slider', 'Touch-box scale', {
-        slide: Control.onChangeScale, value: config.screen.scale, min: 0, max: 1, step: 0.0005 }));
+      'tpc-scale-slider tpc-slider', 'Touch-box scale', { min: 0, max: 1, step: 0.0005 },
+      config, 'screen.scale', function() { Control.updateMouseBox(true); }));
 
   $controlSettings.find('.tpc-control-checkboxes')
     .append(State.enabledCheckbox = makeCheckbox(
-      'tpc-enabled-checkbox', 'Enable touch control', Control.onChangeEnabled, config.enabled))
+      'tpc-enabled-checkbox', 'Enable touch control', config, 'enabled',
+      function() {
+        $mouseBox.css({ display: config.enabled ? 'block' : 'none' }); }))
     .append(State.borderCheckbox = makeCheckbox(
-      'tpc-border-checkbox', 'Show border box', Control.onChangeBorder, config.showBorder))
+      'tpc-border-checkbox', 'Show border box', config, 'showBorder',
+      function() {
+        $mouseBox.css({ border: config.showBorder ? '2px solid rgba(255, 255, 255, 0.5)' : 'none' });
+      }))
     .append(State.coordTooltipCheckbox = makeCheckbox(
-      'tpc-tooltip-checkbox', 'Show coord tooltip', Control.onChangeCoordTooltip, config.showCoordTooltip))
+      'tpc-tooltip-checkbox', 'Show coord tooltip', config, 'showCoordTooltip',
+      function() {
+        if (config.showCoordTooltip) {
+          State.$mouseBox.append(State.$coordTooltip);
+        } else {
+          State.$coordTooltip.remove();
+        }
+      }))
     .append(State.crossCheckbox = makeCheckbox(
-      'tpc-cross-checkbox', 'Use cross pointer', Control.onChangeCross, config.showCross))
+      'tpc-cross-checkbox', 'Use cross pointer', config, 'showCross',
+      function() {
+        State.$mouseBox.css({ cursor: config.showCross ? 'crosshair' : 'default' });
+      }))
     .append(State.autoSendCheckbox = makeCheckbox(
-      'tpc-auto-send-checkbox', 'Auto-send touches', Control.onChangeAutoSend, config.autoSend))
+      'tpc-auto-send-checkbox', 'Auto-send touches', config, 'autoSend'))
     .append(State.dropletsCheckbox = makeCheckbox(
-      'tpc-droplet-checkbox', 'Show touch droplets', Control.onChangeDroplets, config.showDroplets));
+      'tpc-droplet-checkbox', 'Show touch droplets', config, 'showDroplets'));
 
   $controlSettings.find('.tpc-control-last')
     .append(State.resetButton = makeButton(
