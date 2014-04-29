@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             twitch-plays-control@meiguro.com
 // @name           Twitch Plays Pokémon Touch Controller
-// @version        0.1
+// @version        0.1.1
 // @author         Meiguro <meiguro@meiguro.com> http://meiguro.com/
 // @description    Add Touch controls to Twitch Plays Pokemon touch-enabled games.
 // @include        /^https?://(www\.)?twitch\.tv/twitchplayspokemon
