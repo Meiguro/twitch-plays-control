@@ -131,7 +131,7 @@ var State = Control.State = {
 };
 
 Control.getBorderSize = function() {
-  return parseInt(State.$mouseBox.css('borderTop'));
+  return parseInt(State.$mouseBox.css('borderTopWidth'));
 };
 
 Control.updateMouseBox = function(force) {
@@ -473,7 +473,11 @@ Control.loadable = function() {
 
 Control.onload = function() {
   Control.init();
-  console.log(GM_info.script.name + ' v' + GM_info.script.version + ' loaded!');
+  if (typeof GM_info === 'object') {
+    console.log(GM_info.script.name + ' v' + GM_info.script.version + ' loaded!');
+  } else {
+    console.log('Twitch Plays Control loaded!');
+  }
 };
 
 Control.interval = setInterval(Control.update, config.delay);
