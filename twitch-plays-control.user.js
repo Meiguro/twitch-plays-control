@@ -386,7 +386,7 @@ Control.init = function() {
   });
 
   GM_addStyle(
-    '.tpc-mouse-box .tpc-coord-tooltip { display: none } ' +
+    '.tpc-mouse-box .tpc-coord-tooltip { display: none; color: #444; font-weight: normal } ' +
     '.tpc-mouse-box:hover .tpc-coord-tooltip { display: block }');
 
   $coordTooltip.css({
