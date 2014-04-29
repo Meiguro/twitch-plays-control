@@ -4,7 +4,7 @@
 // @version        0.1.2
 // @author         Meiguro <meiguro@meiguro.com> http://meiguro.com/
 // @description    Add Touch controls to Twitch Plays Pokemon touch-enabled games.
-// @include        http*://*.twitch.tv/twitchplayspokemon*
+// @include        /^https?://(www|beta).twitch.tv/twitchplayspokemon.*$/
 // @grant          unsafeWindow, GM_info
 // @run-at         document-start
 // @updateURL      https://rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
@@ -87,9 +87,8 @@ Control.updateControlSettings = function(force) {
   var $chatSettings = State.$chatSettings;
   var $controlSettings = State.$controlSettings;
 
-  if (!$chatSettings.is(':visible') && force !== true) {
-    return;
-  }
+  if (!$chatSettings.length) { return; }
+  if (!$chatSettings.is(':visible') && force !== true) { return; }
 
   var $child = $chatSettings.find(':first');
   var minWidth = Math.max(200, $child.width());
@@ -107,13 +106,11 @@ Control.updateControlSettings = function(force) {
 };
 
 Control.isChatVisible = function() {
-  return $('.ember-text-area').length && $('.chat-hidden-overlay').is(':visible');
+  return $('.ember-text-area').length && !$('.chat-hidden-overlay').is(':visible');
 };
 
 Control.updateInput = function() {
-  if (!Control.isChatVisible()) {
-    return;
-  }
+  if (!Control.isChatVisible()) { return; }
 
   var input = localStorage.TPCInput;
   delete localStorage.TPCInput;
