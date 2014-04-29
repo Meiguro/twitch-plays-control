@@ -319,10 +319,6 @@ Control.onMove = function(e) {
     });
 };
 
-Control.saveConfig = function() {
-  localStorage.TPControl = JSON.stringify(config);
-};
-
 Control.onPressReset = function(e) {
   config = Control.config = $.extend(true, {}, Control.configDefault);
   for (var k in State) {
@@ -335,11 +331,11 @@ Control.onPressReset = function(e) {
   Control.saveConfig();
 };
 
-Control.init = function() {
-  window.$ = unsafeWindow.jQuery;
+Control.saveConfig = function() {
+  localStorage.TPControl = JSON.stringify(config);
+};
 
-  Control.configDefault = $.extend(true, {}, config);
-
+Control.loadConfig = function() {
   if (!localStorage.TPControl) {
     localStorage.TPControl = Control.config;
   } else {
@@ -352,6 +348,14 @@ Control.init = function() {
       console.log(e);
     }
   }
+};
+
+Control.init = function() {
+  window.$ = unsafeWindow.jQuery;
+
+  Control.configDefault = $.extend(true, {}, config);
+
+  Control.loadConfig();
   Control.saveConfig();
 
   dd.onChange = Control.saveConfig;
@@ -359,16 +363,7 @@ Control.init = function() {
   $('.tpc-mouse-box').remove();
   $('.tpc-control-settings').remove();
 
-  var $player = State.$player = $('.dynamic-player');
-  if ($player.length) {
-    Control.isRegular = true;
-  } else {
-    $player = State.$player = $('.player-container');
-    if ($player.length) {
-      Control.isPopout = true;
-    }
-  }
-
+  var $player = State.$player = $('.dynamic-player, .player-contianer');
   var $chatSettings = State.$chatSettings = $('.js-chat-settings');
   var $mouseBox = State.$mouseBox = $('<div/>').addClass('tpc-mouse-box');
   var $coordTooltip = State.$coordTooltip = $('<div/>').addClass('tpc-coord-tooltip');
@@ -464,7 +459,7 @@ Control.loadable = function() {
   var $ = unsafeWindow.jQuery;
   if (typeof $ !== 'function') { return false; }
 
-  var hasPlayer = $('.dynamic-player').length || $('.player-container').length;
+  var hasPlayer = $('.dynamic-player, .player-container').length;
   var hasChatSettings = $('.chat-settings').length;
   return hasPlayer || hasChatSettings;
 };
