@@ -27,7 +27,7 @@ var config = Control.config = {
   enabled: true,
   showBorder: true,
   showHand: true,
-  autoSend: false
+  autoSend: true
 };
 
 var State = Control.State = {};
