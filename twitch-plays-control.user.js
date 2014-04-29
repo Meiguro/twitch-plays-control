@@ -140,8 +140,8 @@ Control.setInput = function(input, broadcast) {
 };
 
 Control.onClick = function(e) {
-  var x = Math.round(e.offsetX / Control.scale);
-  var y = Math.round(e.offsetY / Control.scale);
+  var x = Math.ceil(e.offsetX / Control.scale);
+  var y = Math.ceil(e.offsetY / Control.scale);
   var input = x + ',' + y;
   Control.setInput(input);
 };
