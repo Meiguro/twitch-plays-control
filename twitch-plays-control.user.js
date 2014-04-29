@@ -34,7 +34,9 @@ var config = Control.config = {
   showBorder: true,
   showCoordTooltip: true,
   showHand: false,
-  autoSend: true
+  autoSend: true,
+  showDroplets: true,
+  streamDelay: 15
 };
 
 var State = Control.State = {};
@@ -165,6 +167,32 @@ Control.setInput = function(input, broadcast) {
   }
 };
 
+Control.spawnDroplet = function(position) {
+  var $drop = $('<div/>').addClass('tpc-droplet');
+  var size = 10;
+  $drop.css({
+    background: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: size,
+    position: 'absolute',
+    left: position[0] - size / 2,
+    top: position[1] - size / 2,
+    width: size,
+    height: size
+  });
+  State.$mouseBox.append($drop);
+  $drop
+    .animate({
+      left: position[0],
+      top: position[1],
+      width: 0,
+      height: 0
+    }, config.streamDelay * 1000)
+    .queue(function() {
+      $drop.remove();
+      $drop.dequeue();
+    });
+};
+
 Control.getTouchPosition = function(e) {
   var $mouseBox = State.$mouseBox;
   var offset = $mouseBox.offset();
@@ -183,6 +211,9 @@ Control.getTouchPosition = function(e) {
 Control.onClick = function(e) {
   var touch = Control.getTouchPosition(e);
   Control.setInput(touch.input);
+  if (config.showDroplets) {
+    Control.spawnDroplet(touch.mouse);
+  }
 };
 
 Control.onMove = function(e) {
@@ -314,6 +345,15 @@ Control.onChangeAutoSend = function(e) {
   Control.saveConfig();
 };
 
+Control.onChangeDroplets = function(e) {
+  if (e) {
+    config.showDroplets = $(this).is(':checked');
+  } else {
+    $(this).prop('checked', config.showDroplets);
+  }
+  Control.saveConfig();
+};
+
 Control.onPressReset = function(e) {
   config = Control.config = $.extend(true, {}, Control.configDefault);
   Control.onChangeXPosition.call(State.xSlider.$control);
@@ -324,6 +364,7 @@ Control.onPressReset = function(e) {
   Control.onChangeCoordTooltip.call(State.coordTooltipCheckbox.$control);
   Control.onChangeHand.call(State.handCheckbox.$control);
   Control.onChangeAutoSend.call(State.autoSendCheckbox.$control);
+  Control.onChangeDroplets.call(State.dropletsCheckbox.$control);
   Control.update(true);
   Control.saveConfig();
 };
@@ -417,7 +458,9 @@ Control.init = function() {
     .append(State.handCheckbox = makeCheckbox(
       'tpc-hand-checkbox', 'Use hand pointer', Control.onChangeHand, config.showHand))
     .append(State.autoSendCheckbox = makeCheckbox(
-      'tpc-auto-send-checkbox', 'Auto-send touches', Control.onChangeAutoSend, config.autoSend));
+      'tpc-auto-send-checkbox', 'Auto-send touches', Control.onChangeAutoSend, config.autoSend))
+    .append(State.dropletsCheckbox = makeCheckbox(
+      'tpc-droplet-checkbox', 'Show touch droplets', Control.onChangeDroplets, config.showDroplets));
 
   $controlSettings.find('.tpc-control-last')
     .append(State.resetButton = makeButton(
