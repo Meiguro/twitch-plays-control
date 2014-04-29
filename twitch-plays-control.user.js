@@ -201,15 +201,19 @@ Control.getTouchPosition = function(e) {
   var y = e.clientY - offset.top - 2 * borderSize;
   var touchX = Math.ceil(x / Control.scale);
   var touchY = Math.ceil(y / Control.scale);
+  var valid = (touchX > 0 && touchX <= config.screen.size[0]) &&
+              (touchY > 0 && touchY <= config.screen.size[1]);
   return {
     mouse: [x, y],
     position: [touchX, touchY],
-    input: touchX + ',' + touchY
+    input: touchX + ',' + touchY,
+    valid: valid
   };
 };
 
 Control.onClick = function(e) {
   var touch = Control.getTouchPosition(e);
+  if (!touch.valid) { return; }
   Control.setInput(touch.input);
   if (config.showDroplets) {
     Control.spawnDroplet(touch.mouse);
@@ -221,7 +225,7 @@ Control.onMove = function(e) {
   var touch = Control.getTouchPosition(e);
   var $coordTooltip = State.$coordTooltip;
   $coordTooltip
-    .text(touch.input)
+    .text(touch.valid ? touch.input : '')
     .css({
       position: 'absolute',
       left: touch.mouse[0] + 15,
