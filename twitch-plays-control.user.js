@@ -106,8 +106,12 @@ Control.updateControlSettings = function(force) {
   });
 };
 
+Control.isChatVisible = function() {
+  return $('.ember-text-area').length && $('.chat-hidden-overlay').is(':visible');
+};
+
 Control.updateInput = function() {
-  if (!$('.ember-text-area').length || $('.chat-hidden-overlay').is(':visible')) {
+  if (!Control.isChatVisible()) {
     return;
   }
 
@@ -134,7 +138,7 @@ Control.setInput = function(input, broadcast) {
   if (config.autoSend) {
     $('.send-chat-button button').click();
   }
-  if (broadcast !== false) {
+  if (!Control.isChatVisible() && broadcast !== false) {
     localStorage.TPCInput = input;
   }
 };
