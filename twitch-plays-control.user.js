@@ -125,6 +125,7 @@ var config = Control.config = {
 var State = Control.State = {
   playerSelector: '.dynamic-player, .player-container',
   chatSettingsSelector: '.js-chat-settings',
+  settingsButtonSelector: '.settings.button',
   chatInputSelector: '.ember-text-area',
   chatButtonSelector: '.send-chat-button button',
   chatHiddenSelector: '.chat-hidden-overlay'
@@ -191,18 +192,23 @@ Control.updateControlSettings = function(force) {
   if (!$chatSettings.length) { return; }
   if (!$chatSettings.is(':visible') && force !== true) { return; }
 
-  var $child = $chatSettings.find(':first');
-  var minWidth = Math.max(200, $child.width());
-  var offset = minWidth + 5;
-  var chatSettingsLeft = $chatSettings.offset().left;
-  var isSlim = chatSettingsLeft > 0 && chatSettingsLeft < minWidth;
+  var overflow = $chatSettings.css('overflowY') || '';
+
+  if (overflow.match(/(auto|scroll)/)) {
+    $controlSettings.css({ position: 'static', left: 'none', top: 'none' });
+    return;
+  }
+
+  var minWidth = Math.max(200, $chatSettings.width());
+  var position = { left: 0, top: 0 };
+  var offset = $chatSettings.offset();
+  var isSlim = offset.left > 0 && offset.left < minWidth;
 
   $controlSettings.css({
     position: 'absolute',
-    minWidth: Math.max(minWidth, $child.width()),
-    left: isSlim ? offset : 'none',
-    right: isSlim ? 'none' : offset,
-    bottom: 0
+    minWidth: minWidth,
+    left: position.left + (minWidth + 5) * (isSlim ? 1 : -1),
+    top: position.top + $chatSettings.height() - $controlSettings.height()
   });
 };
 
