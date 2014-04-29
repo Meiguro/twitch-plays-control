@@ -68,13 +68,11 @@ Control.updateMouseBox = function(force) {
     excessWidth = playerWidth - playerHeight * config.screen.aspect;
   }
 
-  Control.scale = [
-    config.screen.scale * playerHeight / config.screen.size[1]
-  ];
+  State.scale = config.screen.scale * playerHeight / config.screen.size[1];
 
   var borderSize = Control.getBorderSize();
-  var width = Control.scale * config.screen.size[0];
-  var height = Control.scale * config.screen.size[1];
+  var width = State.scale * config.screen.size[0];
+  var height = State.scale * config.screen.size[1];
 
   $mouseBox.css({
     position: 'absolute',
@@ -203,8 +201,8 @@ Control.getTouchPosition = function(e) {
   var borderSize = Control.getBorderSize();
   var x = e.clientX - offset.left - 2 * borderSize;
   var y = e.clientY - offset.top - 2 * borderSize;
-  var touchX = Math.ceil(x / Control.scale);
-  var touchY = Math.ceil(y / Control.scale);
+  var touchX = Math.ceil(x / State.scale);
+  var touchY = Math.ceil(y / State.scale);
   var valid = (touchX > 0 && touchX <= config.screen.size[0]) &&
               (touchY > 0 && touchY <= config.screen.size[1]);
   return {
