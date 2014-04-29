@@ -8,7 +8,11 @@
 // @include        /^https?://(www\.)?twitch\.tv/twitchplayspokemon
 // @grant          GM_addStyle
 // @run-at         document-start
+// @updateURL      https://cdn.rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
+// @installURL     https://cdn.rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
+// @downloadURL    https://cdn.rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
 // ==/UserScript==
+
 
 var Control = unsafeWindow.TPControl = {};
 
