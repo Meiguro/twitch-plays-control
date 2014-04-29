@@ -33,13 +33,17 @@ var config = Control.config = {
   enabled: true,
   showBorder: true,
   showCoordTooltip: true,
-  showHand: false,
+  showCross: true,
   autoSend: true,
   showDroplets: true,
   streamDelay: 15
 };
 
 var State = Control.State = {};
+
+Control.getBorderSize = function() {
+  return parseInt(State.$mouseBox.css('borderTop'));
+};
 
 Control.updateMouseBox = function(force) {
   var $player = State.$player;
@@ -68,7 +72,7 @@ Control.updateMouseBox = function(force) {
     config.screen.scale * playerHeight / config.screen.size[1]
   ];
 
-  var borderSize = parseInt($mouseBox.css('borderTop'));
+  var borderSize = Control.getBorderSize();
   var width = Control.scale * config.screen.size[0];
   var height = Control.scale * config.screen.size[1];
 
@@ -196,7 +200,7 @@ Control.spawnDroplet = function(position) {
 Control.getTouchPosition = function(e) {
   var $mouseBox = State.$mouseBox;
   var offset = $mouseBox.offset();
-  var borderSize = parseInt($mouseBox.css('borderTop'));
+  var borderSize = Control.getBorderSize();
   var x = e.clientX - offset.left - 2 * borderSize;
   var y = e.clientY - offset.top - 2 * borderSize;
   var touchX = Math.ceil(x / Control.scale);
@@ -223,13 +227,14 @@ Control.onClick = function(e) {
 Control.onMove = function(e) {
   if (!config.showCoordTooltip) { return; }
   var touch = Control.getTouchPosition(e);
+  var borderSize = Control.getBorderSize();
   var $coordTooltip = State.$coordTooltip;
   $coordTooltip
     .text(touch.valid ? touch.input : '')
     .css({
       position: 'absolute',
-      left: touch.mouse[0] + 15,
-      top: touch.mouse[1] - $coordTooltip.outerHeight() / 2
+      left: touch.mouse[0] + borderSize + 15,
+      top: touch.mouse[1] + borderSize - $coordTooltip.outerHeight() / 2
     });
 };
 
@@ -328,14 +333,14 @@ Control.onChangeCoordTooltip = function(e) {
   Control.saveConfig();
 };
 
-Control.onChangeHand = function(e) {
+Control.onChangeCross = function(e) {
   if (e) {
-    config.showHand = $(this).is(':checked');
+    config.showCross = $(this).is(':checked');
   } else {
-    $(this).prop('checked', config.showHand);
+    $(this).prop('checked', config.showCross);
   }
   State.$mouseBox.css({
-    cursor: config.showHand ? 'pointer' : 'default',
+    cursor: config.showCross ? 'crosshair' : 'default',
   });
   Control.saveConfig();
 };
@@ -366,7 +371,7 @@ Control.onPressReset = function(e) {
   Control.onChangeEnabled.call(State.enabledCheckbox.$control);
   Control.onChangeBorder.call(State.borderCheckbox.$control);
   Control.onChangeCoordTooltip.call(State.coordTooltipCheckbox.$control);
-  Control.onChangeHand.call(State.handCheckbox.$control);
+  Control.onChangeCross.call(State.crossCheckbox.$control);
   Control.onChangeAutoSend.call(State.autoSendCheckbox.$control);
   Control.onChangeDroplets.call(State.dropletsCheckbox.$control);
   Control.update(true);
@@ -459,8 +464,8 @@ Control.init = function() {
       'tpc-border-checkbox', 'Show border box', Control.onChangeBorder, config.showBorder))
     .append(State.coordTooltipCheckbox = makeCheckbox(
       'tpc-tooltip-checkbox', 'Show coord tooltip', Control.onChangeCoordTooltip, config.showCoordTooltip))
-    .append(State.handCheckbox = makeCheckbox(
-      'tpc-hand-checkbox', 'Use hand pointer', Control.onChangeHand, config.showHand))
+    .append(State.crossCheckbox = makeCheckbox(
+      'tpc-cross-checkbox', 'Use cross pointer', Control.onChangeCross, config.showCross))
     .append(State.autoSendCheckbox = makeCheckbox(
       'tpc-auto-send-checkbox', 'Auto-send touches', Control.onChangeAutoSend, config.autoSend))
     .append(State.dropletsCheckbox = makeCheckbox(
