@@ -17,7 +17,9 @@ The following settings are supported:
 - Position and scale sliders in case the stream's touch screen changes
 - Enable/disable the controller
 - Show/hide the border box
-- Use either the default cursor or the hand pointer
+- Show/hide a tooltip with a coordinates readout
+- Use either the default cursor or the crosshair
 - Enable/disable auto-sending commands
+- Enable/disable touch droplets which visualize the approximate stream delay
 
 Have fun!
