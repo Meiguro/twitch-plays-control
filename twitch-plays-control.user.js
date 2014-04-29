@@ -13,6 +13,12 @@
 // ==/UserScript==
 
 
+if (typeof GM_addStyle === 'undefined') {
+  GM_addStyle = function(style) {
+    $('head:first').append($('<style>').text(style));
+  };
+}
+
 var Control = unsafeWindow.TPControl = {};
 
 var config = Control.config = {
@@ -26,7 +32,8 @@ var config = Control.config = {
   },
   enabled: true,
   showBorder: true,
-  showHand: true,
+  showCoordTooltip: true,
+  showHand: false,
   autoSend: true
 };
 
@@ -158,12 +165,37 @@ Control.setInput = function(input, broadcast) {
   }
 };
 
+Control.getTouchPosition = function(e) {
+  var $mouseBox = State.$mouseBox;
+  var offset = $mouseBox.offset();
+  var borderSize = parseInt($mouseBox.css('borderTop'));
+  var x = e.clientX - offset.left - 2 * borderSize;
+  var y = e.clientY - offset.top - 2 * borderSize;
+  var touchX = Math.ceil(x / Control.scale);
+  var touchY = Math.ceil(y / Control.scale);
+  return {
+    mouse: [x, y],
+    position: [touchX, touchY],
+    input: touchX + ',' + touchY
+  };
+};
+
 Control.onClick = function(e) {
-  var offset = $(e.currentTarget).offset();
-  var x = Math.ceil((e.clientX - offset.left) / Control.scale);
-  var y = Math.ceil((e.clientY - offset.top) / Control.scale);
-  var input = x + ',' + y;
-  Control.setInput(input);
+  var touch = Control.getTouchPosition(e);
+  Control.setInput(touch.input);
+};
+
+Control.onMove = function(e) {
+  if (!config.showCoordTooltip) { return; }
+  var touch = Control.getTouchPosition(e);
+  var $coordTooltip = State.$coordTooltip;
+  $coordTooltip
+    .text(touch.input)
+    .css({
+      position: 'absolute',
+      left: touch.mouse[0] + 15,
+      top: touch.mouse[1] - $coordTooltip.outerHeight() / 2
+    });
 };
 
 var makeCheckbox = function(id, label, onChange, value) {
@@ -247,6 +279,20 @@ Control.onChangeBorder = function(e) {
   Control.saveConfig();
 };
 
+Control.onChangeCoordTooltip = function(e) {
+  if (e) {
+    config.showCoordTooltip = $(this).is(':checked');
+  } else {
+    $(this).prop('checked', config.showCoordTooltip);
+  }
+  if (config.showCoordTooltip) {
+    State.$mouseBox.append(State.$coordTooltip);
+  } else {
+    State.$coordTooltip.remove();
+  }
+  Control.saveConfig();
+};
+
 Control.onChangeHand = function(e) {
   if (e) {
     config.showHand = $(this).is(':checked');
@@ -275,6 +321,7 @@ Control.onPressReset = function(e) {
   Control.onChangeScale.call(State.scaleSlider.$control);
   Control.onChangeEnabled.call(State.enabledCheckbox.$control);
   Control.onChangeBorder.call(State.borderCheckbox.$control);
+  Control.onChangeCoordTooltip.call(State.coordTooltipCheckbox.$control);
   Control.onChangeHand.call(State.handCheckbox.$control);
   Control.onChangeAutoSend.call(State.autoSendCheckbox.$control);
   Control.update(true);
@@ -315,6 +362,7 @@ Control.init = function() {
 
   var $chatSettings = State.$chatSettings = $('.js-chat-settings');
   var $mouseBox = State.$mouseBox = $('<div/>').addClass('tpc-mouse-box');
+  var $coordTooltip = State.$coordTooltip = $('<div/>').addClass('tpc-coord-tooltip');
   var $controlSettings = State.$controlSettings = $('<div/>').addClass('tpc-control-settings');
 
   $player.css({ position: 'relative' });
@@ -322,8 +370,22 @@ Control.init = function() {
 
   $mouseBox.css({
     cursor: 'pointer',
-    border: '2px solid rgba(150, 150, 150, 0.2)'
+    border: '2px solid rgba(150, 150, 150, 0.2)',
+    borderRadius: '5px'
   });
+
+  GM_addStyle(
+    '.tpc-mouse-box .tpc-coord-tooltip { display: none } ' +
+    '.tpc-mouse-box:hover .tpc-coord-tooltip { display: block }');
+
+  $coordTooltip.css({
+    padding: '0px 5px',
+    background: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: '2px'
+  });
+
+  $mouseBox.empty();
+  $mouseBox.append($coordTooltip);
 
   $controlSettings.empty();
   $controlSettings.append(
@@ -350,6 +412,8 @@ Control.init = function() {
       'tpc-enabled-checkbox', 'Enable touch control', Control.onChangeEnabled, config.enabled))
     .append(State.borderCheckbox = makeCheckbox(
       'tpc-border-checkbox', 'Show border box', Control.onChangeBorder, config.showBorder))
+    .append(State.coordTooltipCheckbox = makeCheckbox(
+      'tpc-tooltip-checkbox', 'Show coord tooltip', Control.onChangeCoordTooltip, config.showCoordTooltip))
     .append(State.handCheckbox = makeCheckbox(
       'tpc-hand-checkbox', 'Use hand pointer', Control.onChangeHand, config.showHand))
     .append(State.autoSendCheckbox = makeCheckbox(
@@ -363,6 +427,7 @@ Control.init = function() {
   $chatSettings.append($controlSettings);
 
   $mouseBox.on('click', Control.onClick);
+  $mouseBox.on('mousemove', Control.onMove);
 
   Control.updateControlSettings(true);
 
