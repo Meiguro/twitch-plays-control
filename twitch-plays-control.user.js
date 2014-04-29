@@ -4,8 +4,8 @@
 // @version        0.1.2
 // @author         Meiguro <meiguro@meiguro.com> http://meiguro.com/
 // @description    Add Touch controls to Twitch Plays Pokemon touch-enabled games.
-// @include        /^https?://(www|beta).twitch.tv/twitchplayspokemon.*$/
-// @grant          unsafeWindow, GM_info
+// @include        /^https?://(www|beta)?\.?twitch.tv/twitchplayspokemon.*$/
+// @grant          unsafeWindow, GM_addStyle, GM_info
 // @run-at         document-start
 // @updateURL      https://rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
 // @installURL     https://rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
@@ -19,7 +19,7 @@ var config = Control.config = {
   delay: 100,
   screen: {
     aspect: 1920 / 1080,
-    position: [0.5355, 0.9785],
+    position: [0.538, 0.9815],
     scale: 0.443,
     size: [256, 192],
     barHeight: 30
@@ -59,13 +59,14 @@ Control.updateMouseBox = function(force) {
     config.screen.scale * playerHeight / config.screen.size[1]
   ];
 
+  var borderSize = parseInt($mouseBox.css('borderTop'));
   var width = Control.scale * config.screen.size[0];
   var height = Control.scale * config.screen.size[1];
 
   $mouseBox.css({
     position: 'absolute',
-    left: excessWidth / 2 + (playerWidth - width - excessWidth) * config.screen.position[0],
-    top: (playerHeight - height) * config.screen.position[1],
+    left: excessWidth / 2 + (playerWidth - width - excessWidth) * config.screen.position[0] - borderSize,
+    top: (playerHeight - height) * config.screen.position[1] - borderSize,
     width: width,
     height: height
   });
