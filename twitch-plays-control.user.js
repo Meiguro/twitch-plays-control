@@ -22,7 +22,7 @@ require('gm-shims');
 var Control = unsafeWindow.TPControl = {};
 
 var config = Control.config = {
-  delay: 100,
+  delay: 50,
   screen: {
     aspect: 1920 / 1080,
     position: [0.538, 0.9815],
@@ -36,7 +36,7 @@ var config = Control.config = {
   showCross: true,
   autoSend: true,
   showDroplets: true,
-  streamDelay: 15
+  streamDelay: 15,
 };
 
 var State = Control.State = {
@@ -45,7 +45,8 @@ var State = Control.State = {
   settingsButtonSelector: '.settings.button',
   chatInputSelector: '.ember-text-area',
   chatButtonSelector: '.send-chat-button button',
-  chatHiddenSelector: '.chat-hidden-overlay'
+  chatHiddenSelector: '.chat-hidden-overlay',
+  chatLogSelector: '.chat-messages .tse-content',
 };
 
 Control.getBorderSize = function() {
@@ -143,6 +144,34 @@ Control.updateInput = function() {
   }
 };
 
+Control.connectChat = function(address) {
+  var addr = address.split(':');
+  var eventCluster = State.chatSession._connections.event;
+
+  eventCluster.close();
+  eventCluster._addrs = [{ host: addr[0], port: addr[1] }];
+  eventCluster._currentAddressIndex = 0;
+  eventCluster._numSocketConnectAttempts = 0;
+  eventCluster.open();
+
+  var msg = 'connecting to chat server ' + address + '...';
+  $(State.chatLogSelector + ' .ember-view:last')
+    .before('<div class="chat-line admin"><span class="message">' + msg + '</span></div>');
+};
+
+Control.createSession = function() {
+  var chatSession = State.chatSession = TMI.createSessionOrig.apply(this, arguments);
+  console.log('TPC: Captured chat session! You may now choose to connect to a different server.');
+  return chatSession;
+};
+
+Control.updateChat = function() {
+  if (typeof TMI === 'undefined') { return; }
+  if (TMI.origCreateSession) { return; }
+  TMI.createSessionOrig = TMI.createSession;
+  TMI.createSession = Control.createSession;
+};
+
 Control.updateLoad = function() {
   if (State.loaded) { return; }
   if (!Control.loadable()) { return; }
@@ -156,6 +185,8 @@ Control.updateLoad = function() {
 };
 
 Control.update = function() {
+  Control.updateChat();
+
   if (!State.loaded) {
     Control.updateLoad();
     return;
