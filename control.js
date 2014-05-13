@@ -1,10 +1,10 @@
+/* globals unsafeWindow, GM_addStyle, GM_info */
+
 var dd = require('dd');
 
 dd.ui = require('dd-ui');
 
 require('gm-shims');
-
-unsafeWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
 
 var Control = unsafeWindow.TPControl = {};
 
@@ -34,6 +34,7 @@ var State = Control.State = {
   chatButtonSelector: '.send-chat-button button',
   chatHiddenSelector: '.chat-hidden-overlay',
   chatLogSelector: '.chat-messages .tse-content',
+  chatServerAddress: '199.9.250.239:6667',
 };
 
 Control.getBorderSize = function() {
@@ -147,6 +148,16 @@ Control.connectChat = function(address) {
     .before('<div class="chat-line admin"><span class="message">' + msg + '</span></div>');
 };
 
+Control.getCurrentChatAddress = function() {
+  var chatSession = Control.getChatSession();
+  if (!chatSession) { return; }
+  var eventCluster = chatSession._connections.event;
+  if (!eventCluster) { return; }
+  var addr = eventCluster._addrs[eventCluster._currentAddressIndex];
+  if (!addr) { return; }
+  return addr.host + ':' + addr.port;
+};
+
 Control.getChatSession = function() {
   if (State.chatSession) {
     return State.chatSession;
@@ -154,7 +165,7 @@ Control.getChatSession = function() {
 
   var App = unsafeWindow.App;
   if (App && App.Room) {
-    return State.chatSession = App.Room._getTmiSession().fulfillmentValue;
+    return (State.chatSession = App.Room._getTmiSession().fulfillmentValue);
   }
 };
 
@@ -290,7 +301,14 @@ Control.onPressReset = function(e) {
 };
 
 Control.onPressChangeChatServer = function(e) {
-  var address = window.prompt('Enter chat server address:\nExample 199.9.250.239:6667') || '';
+  var defaultAddress = State.chatServerAddress;
+  var currentAddress = Control.getCurrentChatAddress();
+  var address = window.prompt(
+      'Enter chat server address:' +
+      (currentAddress ?
+        '\nCurrent ' + currentAddress :
+        '\nExample ' + defaultAddress),
+      defaultAddress) || '';
   address = address.replace(/\s/, '');
   if (address.length === 0) {
     return;
@@ -310,7 +328,7 @@ Control.loadConfig = function() {
     localStorage.TPControl = Control.config;
   } else {
     try {
-      lastConfig = JSON.parse(localStorage.TPControl);
+      var lastConfig = JSON.parse(localStorage.TPControl);
       for (var k in lastConfig) {
         config[k] = lastConfig[k];
       }
