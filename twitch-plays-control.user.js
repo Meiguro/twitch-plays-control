@@ -444,6 +444,10 @@ Control.init = function() {
   Control.updateControlSettings(true);
 
   State.loaded = true;
+
+  setTimeout(5000, function() {
+    $('.chat-room .loading-mask').remove();
+  });
 };
 
 Control.loadable = function() {
