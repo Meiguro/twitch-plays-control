@@ -560,6 +560,11 @@ module.exports = dd;
 
 },{}],4:[function(require,module,exports){
 (function (global){
+
+if (typeof unsafeWindow === 'undefined') {
+  global.unsafeWindow = window;
+}
+
 if (typeof GM_addStyle === 'undefined') {
   global.GM_addStyle = function(style) {
     $('head:first').append($('<style>').text(style));
