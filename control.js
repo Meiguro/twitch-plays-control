@@ -4,6 +4,8 @@ dd.ui = require('dd-ui');
 
 require('gm-shims');
 
+unsafeWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+
 var Control = unsafeWindow.TPControl = {};
 
 var config = Control.config = {
@@ -430,9 +432,9 @@ Control.init = function() {
 
   State.loaded = true;
 
-  setTimeout(5000, function() {
+  setTimeout(function() {
     $('.chat-room .loading-mask').remove();
-  });
+  }, 5000);
 };
 
 Control.loadable = function() {
