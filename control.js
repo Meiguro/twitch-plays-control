@@ -95,6 +95,8 @@ Control.updateControlSettings = function(force) {
   if (!$chatSettings.length) { return; }
   if (!$chatSettings.is(':visible') && force !== true) { return; }
 
+  $chatSettings.find('.tpc-chat-menu').css('display', State.chatSession ? 'block' : 'none');
+
   var overflow = $chatSettings.css('overflowY') || '';
 
   if (overflow.match(/(auto|scroll)/)) {
@@ -277,6 +279,18 @@ Control.onPressReset = function(e) {
   Control.saveConfig();
 };
 
+Control.onPressChangeChatServer = function(e) {
+  var address = window.prompt('Enter chat server address:\nExample 199.9.250.239:6667') || '';
+  address = address.replace(/\s/, '');
+  if (address.length === 0) {
+    return;
+  }
+  if (!address.match(':')) {
+    address += ':6667';
+  }
+  Control.connectChat(address);
+};
+
 Control.saveConfig = function() {
   localStorage.TPControl = JSON.stringify(config);
 };
@@ -339,11 +353,15 @@ Control.init = function() {
 
   $controlSettings.empty();
   $controlSettings.append(
-    '<div class="chat-menu">' +
+    '<div class="chat-menu tpc-touch-menu">' +
       '<div class="chat-menu-header">Touch Control Settings</div>' +
       '<div class="chat-menu-content tpc-control-sliders"></div>' +
       '<div class="chat-menu-content tpc-control-checkboxes"></div>' +
       '<div class="chat-menu-content tpc-control-last"></div>' +
+    '</div>' +
+    '<div class="chat-menu tpc-chat-menu">' +
+      '<div class="chat-menu-header">Chat Server</div>' +
+      '<div class="chat-menu-content tpc-control-chat"></div>' +
     '</div>');
 
   $controlSettings.find('.tpc-control-sliders')
@@ -388,7 +406,11 @@ Control.init = function() {
 
   $controlSettings.find('.tpc-control-last')
     .append(State.resetButton = dd.ui.button(
-      'tpc-reset-button', 'Reset to default controls', Control.onPressReset));
+      'tpc-reset-button', 'Reset controller settings', Control.onPressReset));
+
+  $controlSettings.find('.tpc-control-chat')
+    .append(State.chatServerButton = dd.ui.button(
+      'tpc-chat-server-button', 'Change chat server', Control.onPressChangeChatServer));
 
   $player.append($mouseBox);
   $chatSettings.append($controlSettings);
