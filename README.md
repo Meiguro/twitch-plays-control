@@ -21,5 +21,6 @@ The following settings are supported:
 - Use either the default cursor or the crosshair
 - Enable/disable auto-sending commands
 - Enable/disable touch droplets which visualize the approximate stream delay
+- Change chat server
 
 Have fun!
