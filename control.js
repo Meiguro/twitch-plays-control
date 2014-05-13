@@ -95,8 +95,6 @@ Control.updateControlSettings = function(force) {
   if (!$chatSettings.length) { return; }
   if (!$chatSettings.is(':visible') && force !== true) { return; }
 
-  $chatSettings.find('.tpc-chat-menu').css('display', State.chatSession ? 'block' : 'none');
-
   var overflow = $chatSettings.css('overflowY') || '';
 
   if (overflow.match(/(auto|scroll)/)) {
@@ -133,7 +131,8 @@ Control.updateInput = function() {
 
 Control.connectChat = function(address) {
   var addr = address.split(':');
-  var eventCluster = State.chatSession._connections.event;
+  var chatSession = Control.getChatSession();
+  var eventCluster = chatSession._connections.event;
 
   eventCluster.close();
   eventCluster._addrs = [{ host: addr[0], port: addr[1] }];
@@ -146,17 +145,26 @@ Control.connectChat = function(address) {
     .before('<div class="chat-line admin"><span class="message">' + msg + '</span></div>');
 };
 
-Control.createSession = function() {
-  var chatSession = State.chatSession = TMI.createSessionOrig.apply(this, arguments);
-  console.log('TPC: Captured chat session! You may now choose to connect to a different server.');
-  return chatSession;
+Control.getChatSession = function() {
+  if (State.chatSession) {
+    return State.chatSession;
+  }
+
+  var App = unsafeWindow.App;
+  if (App && App.Room) {
+    return State.chatSession = App.Room._getTmiSession().fulfillmentValue;
+  }
 };
 
 Control.updateChat = function() {
-  if (typeof TMI === 'undefined') { return; }
-  if (TMI.origCreateSession) { return; }
-  TMI.createSessionOrig = TMI.createSession;
-  TMI.createSession = Control.createSession;
+  if (State.chatSession) { return; }
+
+  var TMI = unsafeWindow.TMI;
+  if (!TMI) { return; }
+
+  if (State.loaded) {
+    Control.getChatSession();
+  }
 };
 
 Control.updateLoad = function() {
@@ -442,3 +450,4 @@ Control.onload = function() {
 };
 
 Control.interval = setInterval(Control.update, config.delay);
+Control.update();
