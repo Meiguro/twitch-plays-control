@@ -107,6 +107,17 @@ Control.updateMouseBox = function(force) {
     .animate({ background: 'transparent' }, 0);
 };
 
+Control.updateChatServerLabel = function() {
+  var $chatSettings = State.$chatSettings;
+  var $chatServer = $chatSettings.find('.tpc-chat-server');
+
+  var labelAddress = $chatServer.text();
+  var currentAddress = Control.getCurrentChatAddress();
+  if (currentAddress !== labelAddress) {
+    $chatServer.text(currentAddress);
+  }
+};
+
 Control.updateControlSettings = function(force) {
   var $chatSettings = State.$chatSettings;
   var $controlSettings = State.$controlSettings;
@@ -115,6 +126,8 @@ Control.updateControlSettings = function(force) {
   if (!$chatSettings.is(':visible') && force !== true) { return; }
 
   var overflow = $chatSettings.css('overflowY') || '';
+
+  Control.updateChatServerLabel();
 
   if (overflow.match(/(auto|scroll)/)) {
     $controlSettings.css({ position: 'static', left: 'none', top: 'none' });
@@ -453,6 +466,7 @@ Control.init = function() {
       'tpc-reset-button', 'Reset controller settings', Control.onPressReset));
 
   $controlSettings.find('.tpc-control-chat')
+    .append('<p><label>Current <span class="tpc-chat-server"></span></label></p>')
     .append(State.chatServerButton = dd.ui.button(
       'tpc-chat-server-button', 'Change chat server', Control.onPressChangeChatServer));
 
