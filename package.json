@@ -1,0 +1,33 @@
+{
+  "name": "twitch-plays-control",
+  "version": "0.2.2",
+  "description": "Twitch Plays Pokémon Touch Controller",
+  "main": "control.js",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "gulp-concat": "~2.2.0",
+    "gulp": "~3.6.2",
+    "gulp-browserify": "~0.5.0",
+    "gulp-header": "~1.0.2"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Meiguro/twitch-plays-control.git"
+  },
+  "keywords": [
+    "twitch",
+    "plays",
+    "pokémon",
+    "touch",
+    "controller"
+  ],
+  "author": "Meiguro",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Meiguro/twitch-plays-control/issues"
+  }
+}
