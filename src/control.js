@@ -34,7 +34,7 @@ var State = Control.State = {
   chatButtonSelector: '.send-chat-button button',
   chatHiddenSelector: '.chat-hidden-overlay',
   chatLogSelector: '.chat-messages .tse-content',
-  chatServerAddress: '199.9.250.239:6667',
+  chatServerAddress: '199.9.252.26:6667',
 };
 
 Control.getBorderSize = function() {
