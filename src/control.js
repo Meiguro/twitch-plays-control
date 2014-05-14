@@ -145,32 +145,6 @@ Control.updateInput = function() {
   }
 };
 
-Control.connectChat = function(address) {
-  var addr = address.split(':');
-  var chatSession = Control.getChatSession();
-  var eventCluster = chatSession._connections.event;
-
-  eventCluster.close();
-  eventCluster._addrs = [{ host: addr[0], port: addr[1] }];
-  eventCluster._currentAddressIndex = 0;
-  eventCluster._numSocketConnectAttempts = 0;
-  eventCluster.open();
-
-  var msg = 'connecting to chat server ' + address + '...';
-  $(State.chatLogSelector + ' .ember-view:last')
-    .before('<div class="chat-line admin"><span class="message">' + msg + '</span></div>');
-};
-
-Control.getCurrentChatAddress = function() {
-  var chatSession = Control.getChatSession();
-  if (!chatSession) { return; }
-  var eventCluster = chatSession._connections.event;
-  if (!eventCluster) { return; }
-  var addr = eventCluster._addrs[eventCluster._currentAddressIndex];
-  if (!addr) { return; }
-  return addr.host + ':' + addr.port;
-};
-
 Control.getChatSession = function() {
   if (State.chatSession) {
     return State.chatSession;
@@ -180,6 +154,42 @@ Control.getChatSession = function() {
   if (App && App.Room) {
     return (State.chatSession = App.Room._getTmiSession().fulfillmentValue);
   }
+};
+
+Control.getChatConnection = function() {
+  var chatSession = Control.getChatSession();
+  var connections = chatSession._connections;
+  var cluster = connections.prod || connections.event;
+  if (cluster) { return cluster; }
+  for (var k in connections) {
+    return connections[k];
+  }
+};
+
+Control.connectChat = function(address) {
+  var addr = address.split(':');
+  var chatSession = Control.getChatSession();
+  var connection = Control.getChatConnection();
+
+  connection.close();
+  connection._addrs = [{ host: addr[0], port: addr[1] }];
+  connection._currentAddressIndex = 0;
+  connection._numSocketConnectAttempts = 0;
+  connection.open();
+
+  var msg = 'connecting to chat server ' + address + '...';
+  $(State.chatLogSelector + ' .ember-view:last')
+    .before('<div class="chat-line admin"><span class="message">' + msg + '</span></div>');
+};
+
+Control.getCurrentChatAddress = function() {
+  var chatSession = Control.getChatSession();
+  if (!chatSession) { return; }
+  var connection = Control.getChatConnection();
+  if (!connection) { return; }
+  var addr = connection._addrs[connection._currentAddressIndex];
+  if (!addr) { return; }
+  return addr.host + ':' + addr.port;
 };
 
 Control.updateChat = function() {
