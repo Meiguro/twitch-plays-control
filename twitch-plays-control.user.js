@@ -186,6 +186,10 @@ Control.connectChat = function(address) {
   var addr = address.split(':');
   var chatSession = Control.getChatSession();
   var connection = Control.getChatConnection();
+  if (!connection) {
+    window.alert('TPC: Couldn\'t obtain a chat connection to manipulate!');
+    return;
+  }
 
   connection.close();
   connection._addrs = [{ host: addr[0], port: addr[1] }];
