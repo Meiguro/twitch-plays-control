@@ -12,10 +12,12 @@ gulp.task('scripts', function() {
   gulp.src(['src/control.js'])
       .pipe(browserify({ paths: ['src'] }))
       .pipe(concat(userfile))
-      .pipe(header(fs.readFileSync(metafile, 'utf8')))
+      .pipe(header(
+          fs.readFileSync(metafile, 'utf8') +
+          fs.readFileSync('motd.js', 'utf8')))
       .pipe(gulp.dest('.'));
 });
 
 gulp.task('default', function() {
-  gulp.watch([metafile, 'src/*.js'], ['scripts']);
+  gulp.watch([metafile, 'motd.js', 'src/*.js'], ['scripts']);
 });
