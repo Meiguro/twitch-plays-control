@@ -24,17 +24,29 @@
  */
 
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-/* globals unsafeWindow, GM_addStyle, GM_info */
+/* globals GM_addStyle, GM_info */
+
+var util2 = require('util2');
 
 var dd = require('dd');
-
 dd.ui = require('dd-ui');
+
+var Entity = require('entity');
+var Touch = require('touch');
+var Chat = require('chat');
+var Settings = require('settings');
+var mywindow = require('window');
 
 require('gm-shims');
 
-var Control = unsafeWindow.TPControl = {};
+var Control = function(def) {
+  Entity.call(this, def);
+  this.config = {};
+};
 
-var config = Control.config = {
+util2.inherit(Control, Entity, Control.prototype);
+
+Control.DefaultConfig = {
   delay: 50,
   screen: {
     aspect: 1920 / 1080,
@@ -52,338 +64,61 @@ var config = Control.config = {
   streamDelay: 15,
 };
 
-var State = Control.State = {
-  playerSelector: '.dynamic-player, .player-container',
-  chatSettingsSelector: '.js-chat-settings',
-  settingsButtonSelector: '.settings.button',
-  chatInputSelector: '.ember-text-area',
-  chatButtonSelector: '.send-chat-button button',
-  chatHiddenSelector: '.chat-hidden-overlay',
-  chatLogSelector: '.chat-messages .tse-content',
-  chatServerAddress: '199.9.252.26:6667',
+Control.PlayerSelector = '.dynamic-player, .player-container';
+
+Control.prototype.updateLoad = function() {
+  if (this.loaded) { return; }
+  if (!this.loadable()) { return; }
+
+  this.onload();
 };
 
-Control.getBorderSize = function() {
-  return parseInt(State.$mouseBox.css('borderTopWidth'));
+Control.prototype.update = function(force) {
+  this.updateLoad();
+
+  Entity.prototype.update.call(this, force);
 };
 
-Control.updateMouseBox = function(force) {
-  var $player = State.$player;
-  var $mouseBox = State.$mouseBox;
-  var $chatSettings = State.$chatSettings;
-
-  var playerWidth = $player.width();
-  var playerHeight = $player.height() - config.screen.barHeight;
-
-  if ((Control.lastPlayerWidth === playerWidth &&
-       Control.lastPlayerHeight === playerHeight) && force !== true) {
-    return;
-  }
-
-  Control.lastPlayerWidth = playerWidth;
-  Control.lastPlayerHeight = playerHeight;
-
-  var aspect = playerWidth / playerHeight;
-
-  var excessWidth = 0;
-  if (aspect > config.screen.aspect) {
-    excessWidth = playerWidth - playerHeight * config.screen.aspect;
-  }
-
-  State.scale = config.screen.scale * playerHeight / config.screen.size[1];
-
-  var borderSize = Control.getBorderSize();
-  var width = State.scale * config.screen.size[0];
-  var height = State.scale * config.screen.size[1];
-
-  $mouseBox.css({
-    position: 'absolute',
-    left: excessWidth / 2 + (playerWidth - width - excessWidth) * config.screen.position[0] - borderSize,
-    top: (playerHeight - height) * config.screen.position[1] - borderSize,
-    width: width,
-    height: height
-  });
-
-  if (!$chatSettings.is(':visible')) {
-    $mouseBox.stop(true, true).css({ background: 'transparent' });
-    return;
-  }
-
-  $mouseBox
-    .stop(true, true)
-    .animate({ backgroundColor: 'rgba(255, 255, 255, 0.5)' }, 100)
-    .delay(1000)
-    .animate({ backgroundColor: 'rgba(255, 255, 255, 0)' })
-    .animate({ background: 'transparent' }, 0);
+Control.prototype.onClick = function(e) {
+  this.component('touch').onClick(e);
 };
 
-Control.updateChatServerLabel = function() {
-  var $chatSettings = State.$chatSettings;
-  var $chatServer = $chatSettings.find('.tpc-chat-server');
-
-  var labelAddress = $chatServer.text();
-  var currentAddress = Control.getCurrentChatAddress();
-  if (currentAddress !== labelAddress) {
-    $chatServer.text(currentAddress);
-  }
+Control.prototype.onMove = function(e) {
+  this.component('touch').onMove(e);
 };
 
-Control.updateControlSettings = function(force) {
-  var $chatSettings = State.$chatSettings;
-  var $controlSettings = State.$controlSettings;
+Control.prototype.onPressReset = function(e) {
+  $.extend(true, this.config, Control.DefaultConfig);
 
-  if (!$chatSettings.length) { return; }
-  if (!$chatSettings.is(':visible') && force !== true) { return; }
-
-  var overflow = $chatSettings.css('overflowY') || '';
-
-  Control.updateChatServerLabel();
-
-  if (overflow.match(/(auto|scroll)/)) {
-    $controlSettings.css({ position: 'static', left: 'none', top: 'none' });
-    return;
-  }
-
-  var minWidth = Math.max(200, $chatSettings.width());
-  var position = { left: 0, top: 0 };
-  var offset = $chatSettings.offset();
-  var isSlim = offset.left > 0 && offset.left < minWidth;
-
-  $controlSettings.css({
-    position: 'absolute',
-    minWidth: minWidth,
-    left: position.left + (minWidth + 5) * (isSlim ? 1 : -1),
-    top: position.top + $chatSettings.height() - $controlSettings.height()
-  });
-};
-
-Control.isChatVisible = function() {
-  return $(State.chatInputSelector).length && !$(State.chatHiddenSelector).is(':visible');
-};
-
-Control.updateInput = function() {
-  if (!Control.isChatVisible()) { return; }
-
-  var input = localStorage.TPCInput;
-  delete localStorage.TPCInput;
-  if (typeof input === 'string' && input.length > 0) {
-    Control.setInput(input, false);
-  }
-};
-
-Control.getChatSession = function() {
-  if (State.chatSession) {
-    return State.chatSession;
-  }
-
-  var App = unsafeWindow.App;
-  if (App && App.Room) {
-    return (State.chatSession = App.Room._getTmiSession().fulfillmentValue);
-  }
-};
-
-Control.getChatConnection = function() {
-  var chatSession = Control.getChatSession();
-  var connections = chatSession._connections;
-  var cluster = connections.prod || connections.event;
-  if (cluster) { return cluster; }
-  for (var k in connections) {
-    return connections[k];
-  }
-};
-
-Control.connectChat = function(address) {
-  var addr = address.split(':');
-  var chatSession = Control.getChatSession();
-  var connection = Control.getChatConnection();
-  if (!connection) {
-    window.alert('TPC: Couldn\'t obtain a chat connection to manipulate!');
-    return;
-  }
-
-  connection.close();
-  connection._addrs = [{ host: addr[0], port: addr[1] }];
-  connection._currentAddressIndex = 0;
-  connection._numSocketConnectAttempts = 0;
-  connection.open();
-
-  var msg = 'connecting to chat server ' + address + '...';
-  $(State.chatLogSelector + ' .ember-view:last')
-    .before('<div class="chat-line admin"><span class="message">' + msg + '</span></div>');
-};
-
-Control.getCurrentChatAddress = function() {
-  var chatSession = Control.getChatSession();
-  if (!chatSession) { return; }
-  var connection = Control.getChatConnection();
-  if (!connection) { return; }
-  var addr = connection._addrs[connection._currentAddressIndex];
-  if (!addr) { return; }
-  return addr.host + ':' + addr.port;
-};
-
-Control.updateChat = function() {
-  if (State.chatSession) { return; }
-
-  var TMI = unsafeWindow.TMI;
-  if (!TMI) { return; }
-
-  if (State.loaded) {
-    Control.getChatSession();
-  }
-};
-
-Control.updateLoad = function() {
-  if (State.loaded) { return; }
-  if (!Control.loadable()) { return; }
-
-  try {
-    Control.onload();
-  } catch (e) {
-    console.log(e.message);
-    console.log(e.stack);
-  }
-};
-
-Control.update = function() {
-  Control.updateChat();
-
-  if (!State.loaded) {
-    Control.updateLoad();
-    return;
-  }
-
-  var $player = State.$player;
-  var $mouseBox = State.$mouseBox;
-
-  if (!config.enabled) { return; }
-
-  Control.updateInput();
-  Control.updateControlSettings();
-  Control.updateMouseBox();
-};
-
-Control.setInput = function(input, broadcast) {
-  $(State.chatInputSelector).val(input)
-    .focus().change().blur();
-  if (config.autoSend) {
-    $(State.chatButtonSelector).click();
-  }
-  if (!Control.isChatVisible() && broadcast !== false) {
-    localStorage.TPCInput = input;
-  }
-};
-
-Control.spawnDroplet = function(position) {
-  var $drop = $('<div/>').addClass('tpc-droplet');
-  var size = 10;
-  $drop.css({
-    background: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: size,
-    position: 'absolute',
-    left: position[0] - size / 2,
-    top: position[1] - size / 2,
-    width: size,
-    height: size
-  });
-  State.$mouseBox.append($drop);
-  $drop
-    .animate({
-      left: position[0],
-      top: position[1],
-      width: 0,
-      height: 0
-    }, config.streamDelay * 1000)
-    .queue(function() {
-      $drop.remove();
-      $drop.dequeue();
-    });
-};
-
-Control.getTouchPosition = function(e) {
-  var $mouseBox = State.$mouseBox;
-  var offset = $mouseBox.offset();
-  var borderSize = Control.getBorderSize();
-  var x = e.clientX - offset.left - 2 * borderSize;
-  var y = e.clientY - offset.top - 2 * borderSize;
-  var touchX = Math.ceil(x / State.scale);
-  var touchY = Math.ceil(y / State.scale);
-  var valid = (touchX > 0 && touchX <= config.screen.size[0]) &&
-              (touchY > 0 && touchY <= config.screen.size[1]);
-  return {
-    mouse: [x, y],
-    position: [touchX, touchY],
-    input: touchX + ',' + touchY,
-    valid: valid
-  };
-};
-
-Control.onClick = function(e) {
-  var touch = Control.getTouchPosition(e);
-  if (!touch.valid) { return; }
-  Control.setInput(touch.input);
-  if (config.showDroplets) {
-    Control.spawnDroplet(touch.mouse);
-  }
-};
-
-Control.onMove = function(e) {
-  if (!config.showCoordTooltip) { return; }
-  var touch = Control.getTouchPosition(e);
-  var borderSize = Control.getBorderSize();
-  var $coordTooltip = State.$coordTooltip;
-  $coordTooltip
-    .text(touch.valid ? touch.input : '')
-    .css({
-      position: 'absolute',
-      left: touch.mouse[0] + borderSize + 15,
-      top: touch.mouse[1] + borderSize - $coordTooltip.outerHeight() / 2
-    });
-};
-
-Control.onPressReset = function(e) {
-  config = Control.config = $.extend(true, {}, Control.configDefault);
-  for (var k in State) {
-    var $elem = State[k];
-    if ($elem.$change) {
-      $elem.$change();
+  this.eachComponent(function(component) {
+    for (var k in component) {
+      var $elem = component[k];
+      if ($elem.$change) {
+        $elem.$change();
+      }
     }
-  }
-  Control.update(true);
-  Control.saveConfig();
+  });
+
+  this.update(true);
+  this.saveConfig();
 };
 
-Control.onPressChangeChatServer = function(e) {
-  var defaultAddress = State.chatServerAddress;
-  var currentAddress = Control.getCurrentChatAddress();
-  var address = window.prompt(
-      'Enter chat server address:' +
-      (currentAddress ?
-        '\nCurrent ' + currentAddress :
-        '\nExample ' + defaultAddress),
-      defaultAddress) || '';
-  address = address.replace(/\s/, '');
-  if (address.length === 0) {
-    return;
-  }
-  if (!address.match(':')) {
-    address += ':6667';
-  }
-  Control.connectChat(address);
+Control.prototype.onPressChangeChatServer = function(e) {
+  this.component('chat').onPressChangeChatServer(e);
 };
 
-Control.saveConfig = function() {
-  localStorage.TPControl = JSON.stringify(config);
+Control.prototype.saveConfig = function() {
+  localStorage.TPControl = JSON.stringify(this.config);
 };
 
-Control.loadConfig = function() {
+Control.prototype.loadConfig = function() {
   if (!localStorage.TPControl) {
-    localStorage.TPControl = Control.config;
+    localStorage.TPControl = this.config;
   } else {
     try {
       var lastConfig = JSON.parse(localStorage.TPControl);
       for (var k in lastConfig) {
-        config[k] = lastConfig[k];
+        this.config[k] = lastConfig[k];
       }
     } catch(e) {
       console.log(e);
@@ -391,24 +126,35 @@ Control.loadConfig = function() {
   }
 };
 
-Control.init = function() {
-  window.$ = unsafeWindow.jQuery;
+Control.prototype.init = function() {
+  var self = this;
 
-  Control.configDefault = $.extend(true, {}, config);
+  window.$ = mywindow.jQuery;
 
-  Control.loadConfig();
-  Control.saveConfig();
+  $.extend(true, this.config, Control.DefaultConfig);
 
-  dd.onChange = Control.saveConfig;
+  this.loadConfig();
+  this.saveConfig();
+
+  dd.onChange = this.saveConfig.bind(this);
 
   $('.tpc-mouse-box').remove();
   $('.tpc-control-settings').remove();
 
-  var $player = State.$player = $(State.playerSelector);
-  var $chatSettings = State.$chatSettings = $(State.chatSettingsSelector);
-  var $mouseBox = State.$mouseBox = $('<div/>').addClass('tpc-mouse-box');
-  var $coordTooltip = State.$coordTooltip = $('<div/>').addClass('tpc-coord-tooltip');
-  var $controlSettings = State.$controlSettings = $('<div/>').addClass('tpc-control-settings');
+  var touch = new Touch();
+  var chat = new Chat();
+  var settings = new Settings();
+
+  this.addComponent(touch);
+  this.addComponent(chat);
+  this.addComponent(settings);
+
+  var $player = touch.$player = $(Control.PlayerSelector);
+  var $mouseBox = touch.$mouseBox = $('<div/>').addClass('tpc-mouse-box');
+  var $coordTooltip = touch.$coordTooltip = $('<div/>').addClass('tpc-coord-tooltip');
+
+  var $chatSettings = settings.$chatSettings = $(Settings.ChatSelector);
+  var $controlSettings = settings.$controlSettings = $('<div/>').addClass('tpc-control-settings');
 
   $player.css({ position: 'relative' });
   $chatSettings.css({ position: 'absolute' });
@@ -446,80 +192,81 @@ Control.init = function() {
     '</div>');
 
   $controlSettings.find('.tpc-control-sliders')
-    .append(State.xSlider = dd.ui.slider(
+    .append(touch.xSlider = dd.ui.slider(
       'tpc-x-slider tpc-slider', 'Touch-box x-position', { min: 0, max: 1, step: 0.0005 },
-      config, 'screen.position.0', function() { Control.updateMouseBox(true); }))
-    .append(State.ySlider = dd.ui.slider(
+      this.config, 'screen.position.0', function() { touch.updateMouseBox(true); }))
+    .append(touch.ySlider = dd.ui.slider(
       'tpc-y-slider tpc-slider', 'Touch-box y-position', { min: 0, max: 1, step: 0.0005 },
-      config, 'screen.position.1', function() { Control.updateMouseBox(true); }))
-    .append(State.scaleSlider = dd.ui.slider(
+      this.config, 'screen.position.1', function() { touch.updateMouseBox(true); }))
+    .append(touch.scaleSlider = dd.ui.slider(
       'tpc-scale-slider tpc-slider', 'Touch-box scale', { min: 0, max: 1, step: 0.0005 },
-      config, 'screen.scale', function() { Control.updateMouseBox(true); }));
+      this.config, 'screen.scale', function() { touch.updateMouseBox(true); }));
 
   $controlSettings.find('.tpc-control-checkboxes')
-    .append(State.enabledCheckbox = dd.ui.checkbox(
-      'tpc-enabled-checkbox', 'Enable touch control', config, 'enabled',
+    .append(touch.enabledCheckbox = dd.ui.checkbox(
+      'tpc-enabled-checkbox', 'Enable touch control', this.config, 'enabled',
       function() {
-        $mouseBox.css({ display: config.enabled ? 'block' : 'none' }); }))
-    .append(State.borderCheckbox = dd.ui.checkbox(
-      'tpc-border-checkbox', 'Show border box', config, 'showBorder',
-      function() {
-        $mouseBox.css({ border: config.showBorder ? '2px solid rgba(255, 255, 255, 0.5)' : 'none' });
+        touch.$mouseBox.css({ display: self.config.enabled ? 'block' : 'none' });
       }))
-    .append(State.coordTooltipCheckbox = dd.ui.checkbox(
-      'tpc-tooltip-checkbox', 'Show coord tooltip', config, 'showCoordTooltip',
+    .append(touch.borderCheckbox = dd.ui.checkbox(
+      'tpc-border-checkbox', 'Show border box', this.config, 'showBorder',
       function() {
-        if (config.showCoordTooltip) {
-          State.$mouseBox.append(State.$coordTooltip);
+        touch.$mouseBox.css({ border: self.config.showBorder ? '2px solid rgba(255, 255, 255, 0.5)' : 'none' });
+      }))
+    .append(touch.coordTooltipCheckbox = dd.ui.checkbox(
+      'tpc-tooltip-checkbox', 'Show coord tooltip', this.config, 'showCoordTooltip',
+      function() {
+        if (self.config.showCoordTooltip) {
+          touch.$mouseBox.append(touch.$coordTooltip);
         } else {
-          State.$coordTooltip.remove();
+          touch.$coordTooltip.remove();
         }
       }))
-    .append(State.crossCheckbox = dd.ui.checkbox(
-      'tpc-cross-checkbox', 'Use cross pointer', config, 'showCross',
+    .append(touch.crossCheckbox = dd.ui.checkbox(
+      'tpc-cross-checkbox', 'Use cross pointer', this.config, 'showCross',
       function() {
-        State.$mouseBox.css({ cursor: config.showCross ? 'crosshair' : 'default' });
+        touch.$mouseBox.css({ cursor: self.config.showCross ? 'crosshair' : 'default' });
       }))
-    .append(State.autoSendCheckbox = dd.ui.checkbox(
-      'tpc-auto-send-checkbox', 'Auto-send touches', config, 'autoSend'))
-    .append(State.dropletsCheckbox = dd.ui.checkbox(
-      'tpc-droplet-checkbox', 'Show touch droplets', config, 'showDroplets'));
+    .append(touch.autoSendCheckbox = dd.ui.checkbox(
+      'tpc-auto-send-checkbox', 'Auto-send touches', this.config, 'autoSend'))
+    .append(touch.dropletsCheckbox = dd.ui.checkbox(
+      'tpc-droplet-checkbox', 'Show touch droplets', this.config, 'showDroplets'));
 
   $controlSettings.find('.tpc-control-last')
-    .append(State.resetButton = dd.ui.button(
-      'tpc-reset-button', 'Reset controller settings', Control.onPressReset));
+    .append(touch.resetButton = dd.ui.button(
+      'tpc-reset-button', 'Reset controller settings', this.onPressReset.bind(this)));
 
   $controlSettings.find('.tpc-control-chat')
     .append('<p><label>Current <span class="tpc-chat-server"></span></label></p>')
-    .append(State.chatServerButton = dd.ui.button(
-      'tpc-chat-server-button', 'Change chat server', Control.onPressChangeChatServer));
+    .append(chat.chatServerButton = dd.ui.button(
+      'tpc-chat-server-button', 'Change chat server', this.onPressChangeChatServer.bind(this)));
 
   $player.append($mouseBox);
   $chatSettings.append($controlSettings);
 
-  $mouseBox.on('click', Control.onClick);
-  $mouseBox.on('mousemove', Control.onMove);
+  $mouseBox.on('click', this.onClick.bind(this));
+  $mouseBox.on('mousemove', this.onMove.bind(this));
 
-  Control.updateControlSettings(true);
+  settings.update(true);
 
-  State.loaded = true;
+  this.loaded = true;
 
   setTimeout(function() {
     $('.chat-room .loading-mask').remove();
   }, 5000);
 };
 
-Control.loadable = function() {
-  var $ = unsafeWindow.jQuery;
+Control.prototype.loadable = function() {
+  var $ = mywindow.jQuery;
   if (typeof $ !== 'function') { return false; }
 
-  var hasPlayer = $(State.playerSelector).length;
-  var hasChatSettings = $(State.chatSettingsSelector).length;
+  var hasPlayer = $(Control.PlayerSelector).length;
+  var hasChatSettings = $(Settings.ChatSelector).length;
   return hasPlayer || hasChatSettings;
 };
 
-Control.onload = function() {
-  Control.init();
+Control.prototype.onload = function() {
+  this.init();
   if (typeof GM_info === 'object') {
     console.log(GM_info.script.name + ' v' + GM_info.script.version + ' loaded!');
   } else {
@@ -527,10 +274,168 @@ Control.onload = function() {
   }
 };
 
-Control.interval = setInterval(Control.update, config.delay);
-Control.update();
+var control = new Control();
 
-},{"dd":3,"dd-ui":2,"gm-shims":4}],2:[function(require,module,exports){
+setInterval(control.update.bind(control), Control.DefaultConfig.delay);
+
+control.update();
+
+mywindow.TPControl = control;
+
+},{"chat":2,"dd":5,"dd-ui":4,"entity":6,"gm-shims":7,"settings":8,"touch":9,"util2":10,"window":11}],2:[function(require,module,exports){
+var util2 = require('util2');
+var Component = require('component');
+
+var mywindow = require('window');
+
+var Chat = function(def) {
+  Component.call(this, def);
+};
+
+util2.inherit(Chat, Component, Chat.prototype);
+
+Chat.InputSelector = '.ember-text-area';
+Chat.ButtonSelector = '.send-chat-button button';
+Chat.HiddenSelector = '.chat-hidden-overlay';
+Chat.LogSelector = '.chat-messages .tse-content';
+Chat.ServerAddress = '199.9.252.26:6667';
+
+Chat.prototype.name = 'chat';
+
+Chat.prototype.start = function() {
+};
+
+Chat.prototype.getChatSession = function() {
+  if (this.chatSession) {
+    return this.chatSession;
+  }
+
+  var App = mywindow.App;
+  if (App && App.Room) {
+    return (this.chatSession = App.Room._getTmiSession().fulfillmentValue);
+  }
+};
+
+Chat.prototype.getChatConnection = function() {
+  var chatSession = this.getChatSession();
+  var connections = chatSession._connections;
+  var cluster = connections.prod || connections.event;
+  if (cluster) { return cluster; }
+  for (var k in connections) {
+    return connections[k];
+  }
+};
+
+Chat.prototype.getCurrentChatAddress = function() {
+  var chatSession = this.getChatSession();
+  if (!chatSession) { return; }
+  var connection = this.getChatConnection();
+  if (!connection) { return; }
+  var addr = connection._addrs[connection._currentAddressIndex];
+  if (!addr) { return; }
+  return addr.host + ':' + addr.port;
+};
+
+Chat.prototype.connectServer = function(address) {
+  var addr = address.split(':');
+  var chatSession = this.getChatSession();
+  var connection = this.getChatConnection();
+  if (!connection) {
+    window.alert('TPC: Couldn\'t obtain a chat connection to manipulate!');
+    return;
+  }
+
+  connection.close();
+  connection._addrs = [{ host: addr[0], port: addr[1] }];
+  connection._currentAddressIndex = 0;
+  connection._numSocketConnectAttempts = 0;
+  connection.open();
+
+  var msg = 'connecting to chat server ' + address + '...';
+  $(Chat.LogSelector + ' .ember-view:last')
+      .before('<div class="chat-line admin"><span class="message">' + msg + '</span></div>');
+};
+
+Chat.prototype.isChatVisible = function() {
+  return $(Chat.InputSelector).length && !$(Chat.HiddenSelector).is(':visible');
+};
+
+Chat.prototype.setInput = function(input, broadcast) {
+  $(Chat.InputSelector).val(input).focus().change().blur();
+  if (this.config.autoSend) {
+    $(Chat.ButtonSelector).click();
+  }
+  if (!this.isChatVisible() && broadcast !== false) {
+    localStorage.TPCInput = input;
+  }
+};
+
+Chat.prototype.updateInput = function() {
+  if (!this.entity.loaded) { return; }
+  if (!this.config.enabled) { return; }
+
+  if (!this.isChatVisible()) { return; }
+
+  var input = localStorage.TPCInput;
+  delete localStorage.TPCInput;
+  if (typeof input === 'string' && input.length > 0) {
+    this.setInput(input, false);
+  }
+};
+
+Chat.prototype.updateChatSession = function() {
+  if (this.chatSession) { return; }
+
+  var TMI = mywindow.TMI;
+  if (!TMI) { return; }
+
+  if (this.entity.loaded) {
+    this.getChatSession();
+  }
+};
+
+Chat.prototype.update = function() {
+  this.updateChatSession();
+  this.updateInput();
+};
+
+Chat.prototype.onPressChangeChatServer = function(e) {
+  var defaultAddress = Chat.ServerAddress;
+  var currentAddress = this.getCurrentChatAddress();
+  var address = window.prompt(
+      'Enter chat server address:' +
+      (currentAddress ?
+        '\nCurrent ' + currentAddress :
+        '\nExample ' + defaultAddress),
+      defaultAddress) || '';
+  address = address.replace(/\s/, '');
+  if (address.length === 0) {
+    return;
+  }
+  if (!address.match(':')) {
+    address += ':6667';
+  }
+  this.connectServer(address);
+};
+
+module.exports = Chat;
+
+},{"component":3,"util2":10,"window":11}],3:[function(require,module,exports){
+var Component = function(def) {
+  this.state = def || {};
+};
+
+Component.prototype.component = function(name) {
+  return this.entity.component(name);
+};
+
+Component.prototype.start = function() {};
+
+Component.prototype.update = function() {};
+
+module.exports = Component;
+
+},{}],4:[function(require,module,exports){
 var dd = require('dd');
 
 dd.ui = dd.ui || {};
@@ -561,7 +466,7 @@ dd.ui.button = function(klass, label, onPress) {
 
 module.exports = dd.ui;
 
-},{"dd":3}],3:[function(require,module,exports){
+},{"dd":5}],5:[function(require,module,exports){
 var dd = {};
 
 dd.last = function(a) {
@@ -615,12 +520,50 @@ dd.bindElement = function($elem, obj, ref, onChange) {
 
 module.exports = dd;
 
-},{}],4:[function(require,module,exports){
-(function (global){
+},{}],6:[function(require,module,exports){
+var Entity = function(def) {
+  this.state = def || {};
+  this._components = [];
+  this._componentsByName = {};
+};
 
-if (typeof unsafeWindow === 'undefined') {
-  global.unsafeWindow = window;
-}
+Entity.prototype.component = function(name) {
+  return this._componentsByName[name];
+};
+
+Entity.prototype.eachComponent = function(callback) {
+  this._components.forEach(callback.bind(this));
+};
+
+Entity.prototype.addComponent = function(component) {
+  if (component.entity) {
+    component.entity.removeComponent(component);
+  }
+  this._componentsByName[component.name] = component;
+  this._components.push(component);
+  component.entity = this;
+  component.config = this.config;
+};
+
+Entity.prototype.removeComponent = function(component) {
+  var index = this._components.indexOf(component);
+  if (index === -1) { return; }
+  this._components.splice(index, 1);
+  delete this._componentsByName[component.name];
+  delete component.entity;
+  delete component.config;
+};
+
+Entity.prototype.update = function(force) {
+  for (var i = 0, ii = this._components.length; i < ii; ++i) {
+    this._components[i].update(force);
+  }
+};
+
+module.exports = Entity;
+
+},{}],7:[function(require,module,exports){
+(function (global){
 
 if (typeof GM_addStyle === 'undefined') {
   global.GM_addStyle = function(style) {
@@ -629,4 +572,242 @@ if (typeof GM_addStyle === 'undefined') {
 }
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],8:[function(require,module,exports){
+var util2 = require('util2');
+var Component = require('component');
+
+var Settings = function(def) {
+  Component.call(this, def);
+};
+
+util2.inherit(Settings, Component, Settings.prototype);
+
+Settings.ChatSelector = '.js-chat-settings';
+Settings.ButtonSelector = '.settings.button';
+
+Settings.prototype.name = 'settings';
+
+Settings.prototype.start = function() {
+};
+
+Settings.prototype.updateServerLabel = function() {
+  var $chatServer = this.$chatSettings.find('.tpc-chat-server');
+
+  var labelAddress = $chatServer.text();
+  var currentAddress = this.component('chat').getCurrentChatAddress();
+  if (currentAddress !== labelAddress) {
+    $chatServer.text(currentAddress);
+  }
+};
+
+Settings.prototype.updatePosition = function(force) {
+  var overflow = this.$chatSettings.css('overflowY') || '';
+
+  if (overflow.match(/(auto|scroll)/)) {
+    this.$controlSettings.css({ position: 'static', left: 'none', top: 'none' });
+    return;
+  }
+
+  var minWidth = Math.max(200, this.$chatSettings.width());
+  var position = { left: 0, top: 0 };
+  var offset = this.$chatSettings.offset();
+  var isSlim = offset.left > 0 && offset.left < minWidth;
+
+  this.$controlSettings.css({
+    position: 'absolute',
+    minWidth: minWidth,
+    left: position.left + (minWidth + 5) * (isSlim ? 1 : -1),
+    top: position.top + this.$chatSettings.height() - this.$controlSettings.height()
+  });
+};
+
+Settings.prototype.update = function(force) {
+  if (!this.entity.loaded) { return; }
+
+  if (!this.$chatSettings.length) { return; }
+  if (!this.$chatSettings.is(':visible') && force !== true) { return; }
+
+  this.updateServerLabel();
+  this.updatePosition();
+};
+
+module.exports = Settings;
+
+},{"component":3,"util2":10}],9:[function(require,module,exports){
+var util2 = require('util2');
+var Component = require('component');
+
+var Touch = function(def) {
+  Component.call(this, def);
+};
+
+util2.inherit(Touch, Component, Touch.prototype);
+
+Touch.prototype.name = 'touch';
+
+Touch.prototype.start = function() {
+};
+
+Touch.prototype.getBorderSize = function() {
+  return parseInt(this.$mouseBox.css('borderTopWidth'));
+};
+
+Touch.prototype.getTouchPosition = function(e) {
+  var offset = this.$mouseBox.offset();
+  var borderSize = this.getBorderSize();
+  var x = e.clientX - offset.left - 2 * borderSize;
+  var y = e.clientY - offset.top - 2 * borderSize;
+  var touchX = Math.ceil(x / this.scale);
+  var touchY = Math.ceil(y / this.scale);
+  var valid = (touchX > 0 && touchX <= this.config.screen.size[0]) &&
+              (touchY > 0 && touchY <= this.config.screen.size[1]);
+  return {
+    mouse: [x, y],
+    position: [touchX, touchY],
+    input: touchX + ',' + touchY,
+    valid: valid
+  };
+};
+
+Touch.prototype.spawnDroplet = function(position) {
+  var $drop = $('<div/>').addClass('tpc-droplet');
+  var size = 10;
+  $drop.css({
+    background: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: size,
+    position: 'absolute',
+    left: position[0] - size / 2,
+    top: position[1] - size / 2,
+    width: size,
+    height: size
+  });
+  this.$mouseBox.append($drop);
+  $drop
+    .animate({
+      left: position[0],
+      top: position[1],
+      width: 0,
+      height: 0
+    }, this.config.streamDelay * 1000)
+    .queue(function() {
+      $drop.remove();
+      $drop.dequeue();
+    });
+};
+
+Touch.prototype.updateMouseBox = function(force) {
+  var playerWidth = this.$player.width();
+  var playerHeight = this.$player.height() - this.config.screen.barHeight;
+
+  if ((this.playerWidth === playerWidth &&
+       this.playerHeight === playerHeight) && force !== true) {
+    return;
+  }
+
+  this.playerWidth = playerWidth;
+  this.playerHeight = playerHeight;
+
+  var aspect = playerWidth / playerHeight;
+
+  var excessWidth = 0;
+  if (aspect > this.config.screen.aspect) {
+    excessWidth = playerWidth - playerHeight * this.config.screen.aspect;
+  }
+
+  this.scale = this.config.screen.scale * playerHeight / this.config.screen.size[1];
+
+  var borderSize = this.getBorderSize();
+  var width = this.scale * this.config.screen.size[0];
+  var height = this.scale * this.config.screen.size[1];
+
+  this.$mouseBox.css({
+    position: 'absolute',
+    left: excessWidth / 2 + (playerWidth - width - excessWidth) * this.config.screen.position[0] - borderSize,
+    top: (playerHeight - height) * this.config.screen.position[1] - borderSize,
+    width: width,
+    height: height
+  });
+
+  if (!this.component('settings').$chatSettings.is(':visible')) {
+    this.$mouseBox.stop(true, true).css({ background: 'transparent' });
+    return;
+  }
+
+  this.$mouseBox
+    .stop(true, true)
+    .animate({ backgroundColor: 'rgba(255, 255, 255, 0.5)' }, 100)
+    .delay(1000)
+    .animate({ backgroundColor: 'rgba(255, 255, 255, 0)' })
+    .animate({ background: 'transparent' }, 0);
+};
+
+Touch.prototype.update = function(force) {
+  if (!this.entity.loaded) { return; }
+  if (!this.config.enabled) { return; }
+
+  this.updateMouseBox(force);
+};
+
+Touch.prototype.onClick = function(e) {
+  var touch = this.getTouchPosition(e);
+  if (!touch.valid) { return; }
+  this.component('chat').setInput(touch.input);
+  if (this.config.showDroplets) {
+    this.spawnDroplet(touch.mouse);
+  }
+};
+
+Touch.prototype.onMove = function(e) {
+  if (!this.config.showCoordTooltip) { return; }
+  var touch = this.getTouchPosition(e);
+  var borderSize = this.getBorderSize();
+  this.$coordTooltip
+    .text(touch.valid ? touch.input : '')
+    .css({
+      position: 'absolute',
+      left: touch.mouse[0] + borderSize + 15,
+      top: touch.mouse[1] + borderSize - this.$coordTooltip.outerHeight() / 2
+    });
+};
+
+module.exports = Touch;
+
+},{"component":3,"util2":10}],10:[function(require,module,exports){
+/*
+ * util2.js by Meiguro - MIT License
+ */
+
+var util2 = (function(){
+
+var util2 = {};
+
+util2.noop = function() {};
+
+util2.copy = function(a, b) {
+  b = b || (a instanceof Array ? [] : {});
+  for (var k in a) { b[k] = a[k]; }
+  return b;
+};
+
+util2.inherit = function(child, parent, proto) {
+  child.prototype = Object.create(parent.prototype);
+  child.prototype.constructor = child;
+  if (proto) {
+    util2.copy(proto, child.prototype);
+  }
+  return child.prototype;
+};
+
+if (typeof module !== 'undefined') {
+  module.exports = util2;
+}
+
+return util2;
+
+})();
+
+},{}],11:[function(require,module,exports){
+/* global unsafeWindow */
+module.exports = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+
 },{}]},{},[1])
