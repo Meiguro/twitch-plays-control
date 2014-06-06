@@ -31,6 +31,12 @@ Entity.prototype.removeComponent = function(component) {
   delete component.config;
 };
 
+Entity.prototype.start = function() {
+  for (var i = 0, ii = this._components.length; i < ii; ++i) {
+    this._components[i].start();
+  }
+};
+
 Entity.prototype.update = function(force) {
   for (var i = 0, ii = this._components.length; i < ii; ++i) {
     this._components[i].update(force);
