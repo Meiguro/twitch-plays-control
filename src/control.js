@@ -225,6 +225,8 @@ Control.prototype.init = function() {
 
   this.loaded = true;
 
+  this.start();
+
   setTimeout(function() {
     $('.chat-room .loading-mask').remove();
   }, 5000);
