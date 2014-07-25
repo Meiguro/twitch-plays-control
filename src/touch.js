@@ -7,6 +7,8 @@ var Touch = function(def) {
 
 util2.inherit(Touch, Component, Touch.prototype);
 
+Touch.SizeEdge = [false, false];
+
 Touch.prototype.name = 'touch';
 
 Touch.prototype.start = function() {
@@ -21,10 +23,16 @@ Touch.prototype.getTouchPosition = function(e) {
   var borderSize = this.getBorderSize();
   var x = e.clientX - offset.left - 2 * borderSize;
   var y = e.clientY - offset.top - 2 * borderSize;
+
+  var minX = 0 + (Touch.SizeEdge[0] ? 0 : 1);
+  var minY = 0 + (Touch.SizeEdge[1] ? 0 : 1);
+  var maxX = this.config.screen.size[0] - (Touch.SizeEdge[0] ? 0 : 1);
+  var maxY = this.config.screen.size[1] - (Touch.SizeEdge[1] ? 0 : 1);
+
   var touchX = Math.ceil(x / this.scale);
   var touchY = Math.ceil(y / this.scale);
-  var valid = (touchX > 0 && touchX <= this.config.screen.size[0]) &&
-              (touchY > 0 && touchY <= this.config.screen.size[1]);
+  var valid = (touchX >= minX && touchX <= maxX) &&
+              (touchY >= minY && touchY <= maxY);
   return {
     mouse: [x, y],
     position: [touchX, touchY],
