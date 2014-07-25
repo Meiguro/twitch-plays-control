@@ -8,8 +8,8 @@
 // @include        /^https?://(www|beta)?\.?twitch.tv/twitchplayspokemon.*$/
 // @grant          unsafeWindow, GM_addStyle, GM_info
 // @run-at         document-start
-// @updateURL      https://rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.meta.js
-// @installURL     https://rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
-// @downloadURL    https://rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
+// @updateURL      https://raw.githubusercontent.com/Meiguro/twitch-plays-control/master/twitch-plays-control.meta.js
+// @installURL     https://raw.githubusercontent.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
+// @downloadURL    https://raw.githubusercontent.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
 // ==/UserScript==
 
