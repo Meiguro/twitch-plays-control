@@ -1,14 +1,25 @@
-Twitch Plays Touch Controller
-====================
+# Twitch Plays Touch Controller
 
-This adds touch input for Firefox and Chrome to [TwitchPlaysPokemon](http://www.twitch.tv/twitchplayspokemon)!
+This adds touch input for Firefox and Chrome to [TwitchPlaysPokemon](http://www.twitch.tv/twitchplayspokemon)! You can use it as either a Userscript or Bookmarklet.
+
+## Use it as a Userscript
 
 - If you use Firefox, install [Scriptish](https://addons.mozilla.org/en-US/firefox/addon/scriptish/).
 - If you use Chrome, install [Tampermonkey](https://chrome.google.com/webstore/detail/dhdgffkkebhmkfjojejmpbldmpobfkfo).
 
 Then visit the user script below and you will be prompted to install it.
 
-Userscript: https://rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
+Userscript: https://raw.githubusercontent.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
+
+## Use it as a Bookmarklet
+
+- Create a new bookmark with the entire code below as the URL:
+
+   `javascript:(function() { var script = document.createElement('script'); script.src = 'http://meiguro.github.io/twitch-plays-control/twitch-plays-control.user.js'; document.head.appendChild(script); })();`
+
+When viewing the stream, open the bookmark and the touch controller will load for supported browsers.
+
+## Features
 
 Click the chat settings box in order to access controller settings.
 
@@ -24,3 +35,4 @@ The following settings are supported:
 - Change chat server
 
 Have fun!
+
