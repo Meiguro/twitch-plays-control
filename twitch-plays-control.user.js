@@ -1,22 +1,26 @@
 // ==UserScript==
 // @id             twitch-plays-control@meiguro.com
 // @name           Twitch Plays Pokémon Touch Controller
-// @version        0.2.6
+// @version        0.3.1
 // @author         Meiguro <meiguro@meiguro.com> http://meiguro.com/
 // @namespace      https://github.com/Meiguro/twitch-plays-control
 // @description    Add Touch controls to Twitch Plays Pokemon touch-enabled games.
-// @include        /^https?://(www|beta)?\.?twitch.tv/twitchplayspokemon.*$/
+// @include        /^https?://(www|beta)?\.?twitch.tv/twitch_?plays.*$/
 // @grant          unsafeWindow, GM_addStyle, GM_info
 // @run-at         document-start
-// @updateURL      https://rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.meta.js
-// @installURL     https://rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
-// @downloadURL    https://rawgit.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
+// @updateURL      https://raw.githubusercontent.com/Meiguro/twitch-plays-control/master/twitch-plays-control.meta.js
+// @installURL     https://raw.githubusercontent.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
+// @downloadURL    https://raw.githubusercontent.com/Meiguro/twitch-plays-control/master/twitch-plays-control.user.js
 // ==/UserScript==
 
 /**
- * CHANGELOG
+ *   ༼ つ ◕_◕ ༽つ v0.3.1 CHANGELOG
  *
- * v0.2.6 Fixes an issue where sometimes you can't change the chat server.
+ * - Updated to the new 3DS layout. Reset your controller settings if the
+ *   touch input box is in the wrong location.
+ *
+ * - The logic has been separated into components for maintainability. There
+ *   should be no break in functionality.
  *
  * Enjoy!
  *
@@ -49,10 +53,10 @@ util2.inherit(Control, Entity, Control.prototype);
 Control.DefaultConfig = {
   delay: 50,
   screen: {
-    aspect: 1920 / 1080,
-    position: [0.538, 0.9815],
-    scale: 0.443,
-    size: [256, 192],
+    aspect: 1280 / 720,
+    position: [0.997, 0.977],
+    scale: 0.392,
+    size: [320, 240],
     barHeight: 30
   },
   enabled: true,
@@ -137,6 +141,10 @@ Control.prototype.init = function() {
   this.saveConfig();
 
   dd.onChange = this.saveConfig.bind(this);
+
+  if (this.config.screen.size[0] != Control.DefaultConfig.screen.size[0]) {
+    $.extend(true, this.config.screen, Control.DefaultConfig.screen);
+  }
 
   $('.tpc-mouse-box').remove();
   $('.tpc-control-settings').remove();
@@ -250,6 +258,8 @@ Control.prototype.init = function() {
   settings.update(true);
 
   this.loaded = true;
+
+  this.start();
 
   setTimeout(function() {
     $('.chat-room .loading-mask').remove();
@@ -441,7 +451,7 @@ var dd = require('dd');
 dd.ui = dd.ui || {};
 
 dd.ui.checkbox = function(id, label, obj, ref, onChange) {
-  var $elem = $('<p><label for="'+id+'"><input id="'+id+'" type="checkbox">'+label+'</label></p>');
+  var $elem = $('<p><label for="'+id+'"><input id="'+id+'" type="checkbox"> '+label+'</label></p>');
   var $input = $elem.find('input');
   dd.bindGetSet($elem, $input.prop.bind($input, 'checked'));
   $input.on('change', dd.bindElement($elem, obj, ref, onChange));
@@ -552,6 +562,12 @@ Entity.prototype.removeComponent = function(component) {
   delete this._componentsByName[component.name];
   delete component.entity;
   delete component.config;
+};
+
+Entity.prototype.start = function() {
+  for (var i = 0, ii = this._components.length; i < ii; ++i) {
+    this._components[i].start();
+  }
 };
 
 Entity.prototype.update = function(force) {

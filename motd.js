@@ -1,7 +1,11 @@
 /**
- * CHANGELOG
+ *   ༼ つ ◕_◕ ༽つ v0.3.1 CHANGELOG
  *
- * v0.2.6 Fixes an issue where sometimes you can't change the chat server.
+ * - Updated to the new 3DS layout. Reset your controller settings if the
+ *   touch input box is in the wrong location.
+ *
+ * - The logic has been separated into components for maintainability. There
+ *   should be no break in functionality.
  *
  * Enjoy!
  *
