@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             twitch-plays-control@meiguro.com
 // @name           Twitch Plays Pokémon Touch Controller
-// @version        0.3.1
+// @version        0.3.2
 // @author         Meiguro <meiguro@meiguro.com> http://meiguro.com/
 // @namespace      https://github.com/Meiguro/twitch-plays-control
 // @description    Add Touch controls to Twitch Plays Pokemon touch-enabled games.
@@ -14,7 +14,11 @@
 // ==/UserScript==
 
 /**
- *   ༼ つ ◕_◕ ༽つ v0.3.1 CHANGELOG
+ *   v0.3.2 CHANGELOG ༼ つ ◕_◕ ༽つ
+ *
+ * - Fixed the coordinate range to be 1,1 - 319,239.
+ *
+ *   v0.3.1
  *
  * - Updated to the new 3DS layout. Reset your controller settings if the
  *   touch input box is in the wrong location.
@@ -659,6 +663,8 @@ var Touch = function(def) {
 
 util2.inherit(Touch, Component, Touch.prototype);
 
+Touch.SizeEdge = [false, false];
+
 Touch.prototype.name = 'touch';
 
 Touch.prototype.start = function() {
@@ -673,10 +679,16 @@ Touch.prototype.getTouchPosition = function(e) {
   var borderSize = this.getBorderSize();
   var x = e.clientX - offset.left - 2 * borderSize;
   var y = e.clientY - offset.top - 2 * borderSize;
+
+  var minX = 0 + (Touch.SizeEdge[0] ? 0 : 1);
+  var minY = 0 + (Touch.SizeEdge[1] ? 0 : 1);
+  var maxX = this.config.screen.size[0] - (Touch.SizeEdge[0] ? 0 : 1);
+  var maxY = this.config.screen.size[1] - (Touch.SizeEdge[1] ? 0 : 1);
+
   var touchX = Math.ceil(x / this.scale);
   var touchY = Math.ceil(y / this.scale);
-  var valid = (touchX > 0 && touchX <= this.config.screen.size[0]) &&
-              (touchY > 0 && touchY <= this.config.screen.size[1]);
+  var valid = (touchX >= minX && touchX <= maxX) &&
+              (touchY >= minY && touchY <= maxY);
   return {
     mouse: [x, y],
     position: [touchX, touchY],
