@@ -24,9 +24,9 @@ Control.DefaultConfig = {
   delay: 50,
   screen: {
     aspect: 1920 / 1080,
-    position: [0.538, 0.9815],
-    scale: 0.443,
-    size: [256, 192],
+    position: [1, 0.9825],
+    scale: 0.3945,
+    size: [320, 240],
     barHeight: 30
   },
   enabled: true,
