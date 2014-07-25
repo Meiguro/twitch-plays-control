@@ -23,7 +23,7 @@ util2.inherit(Control, Entity, Control.prototype);
 Control.DefaultConfig = {
   delay: 50,
   screen: {
-    aspect: 1920 / 1080,
+    aspect: 1280 / 720,
     position: [1, 0.9825],
     scale: 0.3945,
     size: [320, 240],
@@ -111,6 +111,10 @@ Control.prototype.init = function() {
   this.saveConfig();
 
   dd.onChange = this.saveConfig.bind(this);
+
+  if (this.config.screen.size[0] != Control.DefaultConfig.screen.size[0]) {
+    $.extend(true, this.config.screen, Control.DefaultConfig.screen);
+  }
 
   $('.tpc-mouse-box').remove();
   $('.tpc-control-settings').remove();
