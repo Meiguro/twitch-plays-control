@@ -103,7 +103,7 @@ Control.prototype.loadConfig = function() {
 Control.prototype.init = function() {
   var self = this;
 
-  window.$ = mywindow.jQuery;
+  window.$ = window.$ || mywindow.jQuery;
 
   $.extend(true, this.config, Control.DefaultConfig);
 
