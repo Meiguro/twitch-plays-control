@@ -10,7 +10,7 @@ var Chat = function(def) {
 util2.inherit(Chat, Component, Chat.prototype);
 
 Chat.InputSelector = '.ember-text-area';
-Chat.ButtonSelector = '.send-chat-button button';
+Chat.ButtonSelector = '.send-chat-button';
 Chat.HiddenSelector = '.chat-hidden-overlay';
 Chat.LogSelector = '.chat-messages .tse-content';
 Chat.ServerAddress = '199.9.252.26:6667';
