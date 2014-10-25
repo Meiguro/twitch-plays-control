@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             twitch-plays-control@meiguro.com
 // @name           Twitch Plays Pokémon Touch Controller
-// @version        0.3.2
+// @version        0.3.3
 // @author         Meiguro <meiguro@meiguro.com> http://meiguro.com/
 // @namespace      https://github.com/Meiguro/twitch-plays-control
 // @description    Add Touch controls to Twitch Plays Pokemon touch-enabled games.
@@ -14,17 +14,9 @@
 // ==/UserScript==
 
 /**
- *   v0.3.2 CHANGELOG ༼ つ ◕_◕ ༽つ
+ *   v0.3.3 CHANGELOG ༼ つ ◕_◕ ༽つ
  *
- * - Fixed the coordinate range to be 1,1 - 319,239.
- *
- *   v0.3.1
- *
- * - Updated to the new 3DS layout. Reset your controller settings if the
- *   touch input box is in the wrong location.
- *
- * - The logic has been separated into components for maintainability. There
- *   should be no break in functionality.
+ * - Fixed auto send to work with new Twitch UI
  *
  * Enjoy!
  *
@@ -309,7 +301,7 @@ var Chat = function(def) {
 util2.inherit(Chat, Component, Chat.prototype);
 
 Chat.InputSelector = '.ember-text-area';
-Chat.ButtonSelector = '.send-chat-button button';
+Chat.ButtonSelector = '.send-chat-button';
 Chat.HiddenSelector = '.chat-hidden-overlay';
 Chat.LogSelector = '.chat-messages .tse-content';
 Chat.ServerAddress = '199.9.252.26:6667';
