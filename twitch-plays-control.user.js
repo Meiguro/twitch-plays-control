@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             twitch-plays-control@meiguro.com
 // @name           Twitch Plays Pokémon Touch Controller
-// @version        0.3.3
+// @version        0.3.4
 // @author         Meiguro <meiguro@meiguro.com> http://meiguro.com/
 // @namespace      https://github.com/Meiguro/twitch-plays-control
 // @description    Add Touch controls to Twitch Plays Pokemon touch-enabled games.
@@ -16,7 +16,11 @@
 // ==/UserScript==
 
 /**
- *   v0.3.3 CHANGELOG ༼ つ ◕_◕ ༽つ
+ *   v0.3.4 CHANGELOG ༼ つ ◕_◕ ༽つ
+ *
+ * - Fixed to support Greasemonkey's new sandbox security
+ *
+ *   v0.3.3
  *
  * - Fixed auto send to work with new Twitch UI
  *
